@@ -1,0 +1,7 @@
+import testing ;
+
+project package-test ;
+
+exe example : example.cpp ;
+
+run example : target-name test-example ;
