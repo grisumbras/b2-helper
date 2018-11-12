@@ -16,7 +16,7 @@ class B2ToolTestConan(ConanFile):
 
     def build(self):
         builder = b2_tool.B2(self)
-        builder.configure()
+        builder.configure(foo=None, bar="baz")
         builder.build()
 
     def test(self):
