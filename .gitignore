@@ -1,4 +1,3 @@
-
+/tmp
 *.pyc
 test_package/build
-
