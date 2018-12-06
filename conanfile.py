@@ -23,27 +23,27 @@ class B2ToolConan(ConanFile):
 
 class folder(object):
     def __init__(self, wrapped):
-        self.value = None
-        self.wrapped = wrapped
+        self.name = wrapped.__name__
         functools.update_wrapper(self, wrapped)
 
     def __get__(self, instance, owner):
         if instance is None:
             return self
 
-        name = self.wrapped.__name__
-        if not self.value:
-            return getattr(instance.conanfile, name)
-        elif os.path.isabs(self.value):
-            return self.value
+        value = getattr(instance, "_" + self.name, None)
+        conanfile = getattr(instance, "_conanfile")
+        if not value:
+            return getattr(conanfile, self.name)
+        elif os.path.isabs(value):
+            return value
         else:
-            return os.path.join(getattr(instance.conanfile, name), self.value)
+            return os.path.join(getattr(conanfile, self.name), value)
 
     def __set__(self, instance, value):
-        self.value = value
+        setattr(instance, "_" + self.name, value)
 
     def __delete__(self, instance):
-        self.__set__(instance, None)
+        delattr(instance, "_" + self.name)
 
 
 class B2(object):
@@ -52,8 +52,7 @@ class B2(object):
         :param conanfile: Conanfile instance
         """
 
-        self.conanfile = conanfile
-
+        self._conanfile = conanfile
         self._settings = conanfile.settings
 
     @folder
@@ -70,7 +69,7 @@ class B2(object):
         return os.path.join(self.build_folder, "project-config.jam")
 
     def configure(self, requirements=None, options=None, **kw_options):
-        if not self.conanfile.should_configure:
+        if not self._conanfile.should_configure:
             return
 
         kw_options.update(options or dict())
@@ -82,17 +81,17 @@ class B2(object):
             self._write_project(config_file, requirements or [])
 
     def build(self, *targets, args=None):
-        if not self.conanfile.should_build:
+        if not self._conanfile.should_build:
             return
         self._build(args or [], targets)
 
     def install(self, args=None):
-        if not self.conanfile.should_install:
+        if not self._conanfile.should_install:
             return
         self._build(args or [], ["install"])
 
     def test(self, args=None):
-        if not self.conanfile.should_test:
+        if not self._conanfile.should_test:
             return
         self._build(args or [], ["test"])
 
@@ -106,8 +105,8 @@ class B2(object):
         args = itertools.chain(options, args, targets)
         with tools.chdir(self.source_folder):
             b2_command = "b2 " + join_arguments(args)
-            self.conanfile.output.info("%s" % b2_command)
-            self.conanfile.run(b2_command)
+            self._conanfile.output.info("%s" % b2_command)
+            self._conanfile.run(b2_command)
 
     def _write_toolchain(self, config_file):
         config_file.write("using gcc ;\n\n")
