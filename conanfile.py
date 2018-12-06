@@ -4,6 +4,7 @@ from conans import (
 )
 from conans.client import join_arguments
 from conans.util.files import mkdir
+import functools
 import itertools
 import os
 
@@ -20,46 +21,56 @@ class B2ToolConan(ConanFile):
         self.info.header_only()
 
 
+class folder(object):
+    def __init__(self, wrapped):
+        self.value = None
+        self.wrapped = wrapped
+        functools.update_wrapper(self, wrapped)
+
+    def __get__(self, instance, owner):
+        if instance is None:
+            return self
+
+        name = self.wrapped.__name__
+        if not self.value:
+            return getattr(instance.conanfile, name)
+        elif os.path.isabs(self.value):
+            return self.value
+        else:
+            return os.path.join(getattr(instance.conanfile, name), self.value)
+
+    def __set__(self, instance, value):
+        self.value = value
+
+    def __delete__(self, instance):
+        self.__set__(instance, None)
+
+
 class B2(object):
-    def __init__(self, conanfile, source_folder=None, build_folder=None):
+    def __init__(self, conanfile):
         """
         :param conanfile: Conanfile instance
         """
 
-        self._conanfile = conanfile
-        self._settings = conanfile.settings
+        self.conanfile = conanfile
 
-        self._source_folder = source_folder
-        self._build_folder = build_folder
+        self._settings = conanfile.settings
 
     @property
     def config_file(self):
         return os.path.join(self.build_folder, "project-config.jam")
 
-    @property
-    def source_folder(self):
-        if not self._source_folder:
-            return self._conanfile.source_folder
-        elif os.path.isabs(self._source_folder):
-            return self._source_folder
-        else:
-            return os.path.join(
-                self._conanfile.source_folder, self._source_folder
-            )
+    @folder
+    def source_folder(self): pass
 
-    @property
-    def build_folder(self):
-        if not self._build_folder:
-            return self._conanfile.build_folder
-        elif os.path.isabs(self._build_folder):
-            return self._build_folder
-        else:
-            return os.path.join(
-                self._conanfile.build_folder, self._build_folder
-            )
+    @folder
+    def build_folder(self): pass
+
+    @folder
+    def package_folder(self): pass
 
     def configure(self, requirements=None, options=None, **kw_options):
-        if not self._conanfile.should_configure:
+        if not self.conanfile.should_configure:
             return
 
         kw_options.update(options or dict())
@@ -70,18 +81,18 @@ class B2(object):
             self._write_options(config_file, kw_options)
             self._write_project(config_file, requirements or [])
 
-    def build(self, args=None, *targets):
-        if not self._conanfile.should_build:
+    def build(self, *targets, args=None):
+        if not self.conanfile.should_build:
             return
         self._build(args or [], targets)
 
     def install(self, args=None):
-        if not self._conanfile.should_install:
+        if not self.conanfile.should_install:
             return
         self._build(args or [], ["install"])
 
     def test(self, args=None):
-        if not self._conanfile.should_test:
+        if not self.conanfile.should_test:
             return
         self._build(args or [], ["test"])
 
@@ -95,8 +106,8 @@ class B2(object):
         args = itertools.chain(options, args, targets)
         with tools.chdir(self.source_folder):
             b2_command = "b2 " + join_arguments(args)
-            self._conanfile.output.info("%s" % b2_command)
-            self._conanfile.run(b2_command)
+            self.conanfile.output.info("%s" % b2_command)
+            self.conanfile.run(b2_command)
 
     def _write_toolchain(self, config_file):
         config_file.write("using gcc ;\n\n")
