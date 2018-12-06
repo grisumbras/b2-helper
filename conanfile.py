@@ -56,10 +56,6 @@ class B2(object):
 
         self._settings = conanfile.settings
 
-    @property
-    def config_file(self):
-        return os.path.join(self.build_folder, "project-config.jam")
-
     @folder
     def source_folder(self): pass
 
@@ -69,6 +65,10 @@ class B2(object):
     @folder
     def package_folder(self): pass
 
+    @property
+    def project_config(self):
+        return os.path.join(self.build_folder, "project-config.jam")
+
     def configure(self, requirements=None, options=None, **kw_options):
         if not self.conanfile.should_configure:
             return
@@ -76,7 +76,7 @@ class B2(object):
         kw_options.update(options or dict())
 
         mkdir(self.build_folder)
-        with open(self.config_file, "w") as config_file:
+        with open(self.project_config, "w") as config_file:
             self._write_toolchain(config_file)
             self._write_options(config_file, kw_options)
             self._write_project(config_file, requirements or [])
@@ -98,7 +98,7 @@ class B2(object):
 
     def _build(self, args, targets):
         options = [
-            "--project-config=" + self.config_file,
+            "--project-config=" + self.project_config,
             "-j%s" % tools.cpu_count(),
             "-d+%s" % tools.get_env("CONAN_B2_DEBUG", "1"),
             "--hash",
