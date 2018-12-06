@@ -6,7 +6,7 @@ from conans import (
 )
 
 
-b2_tool = python_requires("b2-tool/0.0.1@grisumbras/testing")
+build_helper = python_requires("b2-helper/0.0.1@grisumbras/testing")
 
 
 class B2ToolTestConan(ConanFile):
@@ -15,7 +15,7 @@ class B2ToolTestConan(ConanFile):
     build_requires = "boost_build/1.67.0@bincrafters/testing"
 
     def build(self):
-        builder = b2_tool.B2(self)
+        builder = build_helper.B2(self)
         builder.configure(foo=None, bar="baz")
         builder.build()
 

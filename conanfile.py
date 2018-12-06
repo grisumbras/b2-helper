@@ -9,7 +9,7 @@ import os
 
 
 class B2ToolConan(ConanFile):
-    name = "b2-tool"
+    name = "b2-helper"
     version = "0.0.1"
     description = "conan helper for projects built with b2"
     url = "http://github.com/grisumbras/b2-tools"
