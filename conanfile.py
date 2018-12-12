@@ -7,6 +7,7 @@ from conans.util.files import mkdir
 import collections
 import functools
 import itertools
+import numbers
 import os
 import six
 
@@ -48,16 +49,10 @@ class folder(object):
         delattr(instance, "_" + self.name)
 
 
-class OptionsProxy(object):
-    _special_options = {
-        "--project-config": "project_config",
-        "--build-dir": "build_folder",
-    }
-
+class FancyDict(object):
     def __init__(self, b2):
-        setter = super(OptionsProxy, self).__setattr__
+        setter = super(FancyDict, self).__setattr__
         setter("_b2", b2)
-        setter("_conanfile", getattr(b2, "_conanfile"))
         setter("_values", {})
 
     def __getitem__(self, key):
@@ -85,11 +80,6 @@ class OptionsProxy(object):
     def __delattr__(self, key):
         del self[key]
 
-    def __call__(self, *args, **kw):
-        # pylint: disable=dict-items-not-iterating
-        for k, v in itertools.chain([(a, True) for a in args], kw.items()):
-            self[k] = v
-
     def items(self):
         return self._values.items()
 
@@ -97,6 +87,18 @@ class OptionsProxy(object):
         return [
             opt.lstrip("-").replace("-", "_") for opt in self._values.keys()
         ]
+
+
+class OptionsProxy(FancyDict):
+    _special_options = {
+        "--project-config": "project_config",
+        "--build-dir": "build_folder",
+    }
+
+    def __call__(self, *args, **kw):
+        # pylint: disable=dict-items-not-iterating
+        for k, v in itertools.chain([(a, True) for a in args], kw.items()):
+            self[k] = v
 
     def strings(self):
         return (self._stringify(k, v) for (k, v) in self.items())
@@ -133,6 +135,62 @@ class OptionsProxy(object):
             )
 
 
+class PropertySet(FancyDict):
+    _special_options = {}
+
+    def __call__(self, **kw):
+        for k, v in kw.items():
+            self[k] = v
+
+    def __str__(self):
+        return "/".join((self._stringify(k, v) for (k, v) in self.items()))
+
+    def _b2ify(self, key):
+        return key.replace("_", "-")
+
+    def _stringify(self, option, value):
+        return "{option}={value}".format(option=option, value=value)
+
+
+class PropertiesProxy(object):
+    def __init__(self, b2):
+        setter = super(PropertiesProxy, self).__setattr__
+        setter("_b2", b2)
+        setter("_property_sets", [])
+        self.add()
+
+    def __getitem__(self, key):
+        if isinstance(self, (numbers.Number, slice)):
+            return self._property_sets[key]
+        return self._property_sets[0][key]
+
+    def __setitem__(self, key, value):
+        if isinstance(self, (numbers.Number, slice)):
+            self._property_sets[key] = value
+        self._property_sets[0][key] = value
+
+    def __delitem__(self, key):
+        if isinstance(self, (numbers.Number, slice)):
+            del self._property_sets[key]
+        del self._property_sets[0][key]
+
+    def __getattr__(self, key):
+        return getattr(self._property_sets[0], key)
+
+    def __setattr__(self, key, value):
+        setattr(self._property_sets[0], key, value)
+
+    def __delattr__(self, key):
+        delattr(self._property_sets[0], key)
+
+    def __iter__(self):
+        return iter(self._property_sets)
+
+    def add(self):
+        self._property_sets.append(PropertySet(self._b2))
+        return self._property_sets[-1]
+
+
 class B2(object):
     def __init__(self, conanfile):
         """
@@ -149,6 +207,8 @@ class B2(object):
             d=tools.get_env("CONAN_B2_DEBUG", "1"),
         )
 
+        self.properties = PropertiesProxy(self)
+
     @folder
     def source_folder(self): pass
 
@@ -162,14 +222,13 @@ class B2(object):
     def project_config(self):
         return os.path.join(self.build_folder, "project-config.jam")
 
-    def configure(self, requirements=None):
+    def configure(self):
         if not self._conanfile.should_configure:
             return
 
         mkdir(self.build_folder)
         with open(self.project_config, "w") as config_file:
             self._write_toolchain(config_file)
-            self._write_project(config_file, requirements or [])
 
     def build(self, *targets):
         if not (targets or self._conanfile.should_build):
@@ -194,6 +253,7 @@ class B2(object):
         args = itertools.chain(
             special_options,
             self.options.strings(),
+            (str(ps) for ps in self.properties),
             targets,
         )
         with tools.chdir(self.source_folder):
@@ -202,15 +262,7 @@ class B2(object):
             self._conanfile.run(b2_command)
 
     def _write_toolchain(self, config_file):
-        config_file.write("using gcc ;\n\n")
-
-    def _write_project(self, config_file, requirements):
+        config_file.write("using gcc ;\n")
         config_file.write("project\n")
-        config_file.write("  : requirements\n")
-        requirements = itertools.chain(
-            requirements,
-            [("variant", "release"), ("link", "static"), ("toolset", "gcc")],
-        )
-        for k, v in requirements:
-            config_file.write("      <{k}>{v}\n".format(k=k, v=v))
+        config_file.write("  : requirements <toolset>gcc\n")
         config_file.write("  ;\n")
