@@ -138,6 +138,25 @@ class OptionsProxy(FancyDict):
 class PropertySet(FancyDict):
     _special_options = {}
 
+    def __init__(self, *args, **kw):
+        super(PropertySet, self).__init__(*args, **kw)
+
+        settings = self._b2._settings
+        for name, value in settings.items():
+            name = "set_setting_" + name.replace(".", "_")
+            if hasattr(self._b2, name):
+                func = getattr(self._b2, name)
+                func(self, value)
+            else:
+                try:
+                    func = self.__getattribute__(name)
+                    func(value)
+                except AttributeError:
+                    continue
+
+    def set_setting_build_type(self, build_type):
+        self.variant = str(build_type).lower()
+
     def __call__(self, **kw):
         for k, v in kw.items():
             self[k] = v
