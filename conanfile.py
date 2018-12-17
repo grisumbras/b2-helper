@@ -227,8 +227,12 @@ class B2(object):
             return
 
         mkdir(self.build_folder)
-        with open(self.project_config, "w") as config_file:
-            self._write_toolchain(config_file)
+        tools.save(
+            self.project_config,
+            _project_config_template.format(
+                install_folder=self._conanfile.install_folder,
+            )
+        )
 
     def build(self, *targets):
         if not (targets or self._conanfile.should_build):
@@ -261,8 +265,9 @@ class B2(object):
             self._conanfile.output.info("%s" % b2_command)
             self._conanfile.run(b2_command)
 
-    def _write_toolchain(self, config_file):
-        config_file.write("using gcc ;\n")
-        config_file.write("project\n")
-        config_file.write("  : requirements <toolset>gcc\n")
-        config_file.write("  ;\n")
+
+_project_config_template = '''\
+use-packages "{install_folder}/conanbuildinfo.jam" ;
+using gcc ;
+project : requirements <toolset>gcc ;
+'''
