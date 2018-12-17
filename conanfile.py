@@ -141,19 +141,8 @@ class PropertySet(FancyDict):
 
     def __init__(self, *args, **kw):
         super(PropertySet, self).__init__(*args, **kw)
-
-        settings = self._b2._settings
-        for name, value in settings.items():
-            name = "init_setting_" + name.replace(".", "_")
-            if hasattr(self._b2, name):
-                func = getattr(self._b2, name)
-                func(self, value)
-            else:
-                try:
-                    func = self.__getattribute__(name)
-                    func(value)
-                except AttributeError:
-                    continue
+        self._init_from_conanfile("setting")
+        self._init_from_conanfile("option")
 
     def init_setting_build_type(self, value):
         self["variant"] = str(value).lower()
@@ -232,6 +221,12 @@ class PropertySet(FancyDict):
         if iset is not None:
             self["instruction_set"] = iset
 
+    def init_option_shared(self, value):
+        self["link"] = "shared" if value else "static"
+
+    def init_option_static(self, value):
+        self.init_option_shared(not value)
+
     def __call__(self, **kw):
         for k, v in kw.items():
             self[k] = v
@@ -244,6 +239,19 @@ class PropertySet(FancyDict):
 
     def _stringify(self, option, value):
         return "{option}={value}".format(option=option, value=value)
+
+    def _init_from_conanfile(self, source):
+        for name, value in getattr(self._b2._conanfile, source + "s").items():
+            name = "init_%s_%s" % (source, name.replace(".", "_"))
+            if hasattr(self._b2, name):
+                func = getattr(self._b2, name)
+                func(self, value)
+            else:
+                try:
+                    func = self.__getattribute__(name)
+                    func(value)
+                except AttributeError:
+                    continue
 
 
 class PropertiesProxy(object):
