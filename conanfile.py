@@ -190,8 +190,48 @@ class PropertySet(FancyDict):
             "WSL": "linux",
         }.get(host_os, host_os.lower())
         # Conan host OS corresponds to <target-os> in B2
-        self.target_os = host_os
+        self["target_os"] = host_os
 
+
+    def set_setting_arch(self, arch):
+        if not tools.cross_building(self._b2._settings):
+            return
+
+        arch = str(arch)
+
+        def architecture(arch):
+            if arch.startswith("x86"):
+                return "x86"
+            elif arch.startswith("ppc"):
+                return "power"
+            elif arch.startswith("arm"):
+                return "arm"
+            elif arch.startswith("sparc"):
+                return "sparc"
+            elif arch == "mips64":
+                return "mips64"
+            elif arch == "mips":
+                return "mips1"
+        self["architecture"] = architecture(arch)
+
+        def address_model(arch):
+            if arch in (
+                    "x86_64", "ppc64", "ppc64le", "mips64", "armv8", "sparcv9"
+            ):
+                return 64
+            else:
+                return 32
+        self["address_model"] = address_model(arch)
+
+        iset = {
+            "ppc64": "powerpc64",
+            "armv6": "armv6",
+            "armv7": "armv7",
+            "armv7s": "armv7s",
+            "sparcv9": "v9",
+        }.get(arch)
+        if iset is not None:
+            self["instruction_set"] = iset
 
     def __call__(self, **kw):
         for k, v in kw.items():
