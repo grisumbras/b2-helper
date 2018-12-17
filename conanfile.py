@@ -144,7 +144,7 @@ class PropertySet(FancyDict):
 
         settings = self._b2._settings
         for name, value in settings.items():
-            name = "set_setting_" + name.replace(".", "_")
+            name = "init_setting_" + name.replace(".", "_")
             if hasattr(self._b2, name):
                 func = getattr(self._b2, name)
                 func(self, value)
@@ -155,10 +155,10 @@ class PropertySet(FancyDict):
                 except AttributeError:
                     continue
 
-    def set_setting_build_type(self, value):
+    def init_setting_build_type(self, value):
         self["variant"] = str(value).lower()
 
-    def set_setting_cppstd(self, value):
+    def init_setting_cppstd(self, value):
         value = str(value)
         if value.startswith("gnu"):
             self["cxxstd_dialect"] = "gnu"
@@ -170,7 +170,7 @@ class PropertySet(FancyDict):
             pass
         self["cxxstd"] = value
 
-    def set_setting_os(self, host_os):
+    def init_setting_os(self, host_os):
         if not tools.cross_building(self._b2._settings):
             return
 
@@ -192,8 +192,7 @@ class PropertySet(FancyDict):
         # Conan host OS corresponds to <target-os> in B2
         self["target_os"] = host_os
 
-
-    def set_setting_arch(self, arch):
+    def init_setting_arch(self, arch):
         if not tools.cross_building(self._b2._settings):
             return
 
