@@ -2,6 +2,7 @@ from conans import (
     ConanFile,
     tools,
 )
+from conans.errors import ConanException
 from conans.client import join_arguments
 from conans.util.files import mkdir
 import collections
@@ -154,8 +155,43 @@ class PropertySet(FancyDict):
                 except AttributeError:
                     continue
 
-    def set_setting_build_type(self, build_type):
-        self.variant = str(build_type).lower()
+    def set_setting_build_type(self, value):
+        self["variant"] = str(value).lower()
+
+    def set_setting_cppstd(self, value):
+        value = str(value)
+        if value.startswith("gnu"):
+            self["cxxstd_dialect"] = "gnu"
+            value = value[3:]
+        try:
+            if int(value) >= 20:
+                value = "2a"
+        except ValueError:
+            pass
+        self["cxxstd"] = value
+
+    def set_setting_os(self, host_os):
+        if not tools.cross_building(self._b2._settings):
+            return
+
+        try:
+            host_os = str(host_os.subsystem)
+        except (AttributeError, ConanException):
+            host_os = str(host_os)
+
+        host_os = {
+            "WindowsStore": "windows",
+            "Macos": "darwin",
+            "iOS": "iphone",
+            "watchOS": "iphone",
+            "tvOS": "appletv",
+            "SunOS": "solaris",
+            "Arduino": "linux",
+            "WSL": "linux",
+        }.get(host_os, host_os.lower())
+        # Conan host OS corresponds to <target-os> in B2
+        self.target_os = host_os
+
 
     def __call__(self, **kw):
         for k, v in kw.items():
