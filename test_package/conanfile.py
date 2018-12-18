@@ -22,7 +22,7 @@ class B2ToolTestConan(ConanFile):
         builder.build_folder = "build"
 
         builder.options.foo = True
-        builder.options(bar="baz")
+        builder.options.update(bar="baz")
 
         builder.properties.threading = "multi"
 

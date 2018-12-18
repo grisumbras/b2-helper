@@ -50,65 +50,73 @@ class folder(object):
         delattr(instance, "_" + self.name)
 
 
-class FancyDict(object):
+class AttrDict(dict):
+    _special_keys = {}
+
     def __init__(self, b2):
-        setter = super(FancyDict, self).__setattr__
-        setter("_b2", b2)
-        setter("_values", {})
+        super().__init__()
+        super().__setattr__("_b2", b2)
 
     def __getitem__(self, key):
-        key = self._b2ify(key)
-        return self._values[key]
+        return self._interact_with_item(getattr, super().__getitem__, key)
 
     def __setitem__(self, key, value):
-        key = self._b2ify(key)
-
-        if key in self._special_options.keys():
-            setattr(self._b2, self._special_options[key], value)
-        else:
-            self._values[key] = value
+        self._interact_with_item(setattr, super().__setitem__, key, value)
 
     def __delitem__(self, key):
-        key = self._b2ify(key)
-        del self._values[key]
+        self._interact_with_item(delattr, super().__delitem__, key)
 
-    def __getattr__(self, key):
-        return self[key]
+    __getattr__ = __getitem__
+    __setattr__ = __setitem__
+    __delattr__ = __delitem__
 
-    def __setattr__(self, key, value):
-        self[key] = value
+    def update(self, *args, **kw):
+        if args:
+            d = args[0]
+            args = args[1:]
+            try:
+                # pylint: disable=dict-items-not-iterating
+                initial = d.items()
+            except:
+                initial = d
+        else:
+            initial = ()
 
-    def __delattr__(self, key):
-        del self[key]
-
-    def items(self):
-        return self._values.items()
-
-    def dir(self):
-        return [
-            opt.lstrip("-").replace("-", "_") for opt in self._values.keys()
-        ]
-
-
-class OptionsProxy(FancyDict):
-    _special_options = {
-        "--project-config": "project_config",
-        "--build-dir": "build_folder",
-    }
-
-    def __call__(self, *args, **kw):
         # pylint: disable=dict-items-not-iterating
-        for k, v in itertools.chain([(a, True) for a in args], kw.items()):
+        for k, v in itertools.chain(initial, args, kw.items()):
             self[k] = v
+
+    def jamify(self, key):
+        return key.replace("_", "-")
+
+    def _interact_with_item(self, special, regular, key, *args):
+        key = self.jamify(key)
+        reflist = self._special_keys.get(key)
+        if reflist is None:
+            return regular(key, *args)
+
+        reflist = reflist.split(".")
+        obj = self
+        for ref in reflist[:-1]:
+            obj = getattr(obj, ref)
+
+        return special(obj, reflist[-1])
+
+
+class OptionsProxy(AttrDict):
+    _special_keys = {
+        "--project-config": "_b2.project_config",
+        "--build-dir": "_b2.build_folder",
+    }
 
     def strings(self):
         return (self._stringify(k, v) for (k, v) in self.items())
 
-    def _b2ify(self, key):
+    def jamify(self, key):
         if key.startswith('-'):
             return key
 
-        key = key.replace("_", "-")
+        key = super().jamify(key)
         if len(key) == 1:
             key = "-" + key
         else:
@@ -136,11 +144,9 @@ class OptionsProxy(FancyDict):
             )
 
 
-class PropertySet(FancyDict):
-    _special_options = {}
-
+class PropertySet(AttrDict):
     def __init__(self, *args, **kw):
-        super(PropertySet, self).__init__(*args, **kw)
+        super().__init__(*args, **kw)
         self._init_from_conanfile("setting")
         self._init_from_conanfile("option")
 
@@ -227,15 +233,8 @@ class PropertySet(FancyDict):
     def init_option_static(self, value):
         self.init_option_shared(not value)
 
-    def __call__(self, **kw):
-        for k, v in kw.items():
-            self[k] = v
-
     def __str__(self):
         return "/".join((self._stringify(k, v) for (k, v) in self.items()))
-
-    def _b2ify(self, key):
-        return key.replace("_", "-")
 
     def _stringify(self, option, value):
         return "{option}={value}".format(option=option, value=value)
@@ -256,7 +255,7 @@ class PropertySet(FancyDict):
 
 class PropertiesProxy(object):
     def __init__(self, b2):
-        setter = super(PropertiesProxy, self).__setattr__
+        setter = super().__setattr__
         setter("_b2", b2)
         setter("_property_sets", [])
         self.add()
@@ -303,8 +302,8 @@ class B2(object):
         self._settings = conanfile.settings
 
         self.options = OptionsProxy(self)
-        self.options(
-            "hash",
+        self.options.update(
+            hash=True,
             j=tools.cpu_count(),
             d=tools.get_env("CONAN_B2_DEBUG", "1"),
         )
