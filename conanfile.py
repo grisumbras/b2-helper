@@ -55,24 +55,49 @@ class folder(object):
 
 
 class AttrDict(dict):
-    _special_keys = {}
-
     def __init__(self, b2):
         super().__init__()
         super().__setattr__("_b2", b2)
 
     def __getitem__(self, key):
-        return self._interact_with_item(getattr, super().__getitem__, key)
+        name = self._pythonify(key)
+        descriptor = type(self).__dict__.get(name)
+        if descriptor is None:
+            return super(AttrDict, self).__getitem__(self._jamify(key))
+        else:
+            return descriptor.__get__(self, type(self))
 
     def __setitem__(self, key, value):
-        self._interact_with_item(setattr, super().__setitem__, key, value)
+        name = self._pythonify(key)
+        descriptor = type(self).__dict__.get(name)
+        if descriptor is None:
+            super(AttrDict, self).__setitem__(self._jamify(key), value)
+        else:
+            descriptor.__set__(self, value)
 
     def __delitem__(self, key):
-        self._interact_with_item(delattr, super().__delitem__, key)
+        name = self._pythonify(key)
+        descriptor = type(self).__dict__.get(name)
+        if descriptor is None:
+            super(AttrDict, self).__delitem__(self._jamify(key))
+        else:
+            descriptor.__delete__(self)
 
-    __getattr__ = __getitem__
-    __setattr__ = __setitem__
-    __delattr__ = __delitem__
+    def __getattr__(self, name):
+        try:
+            return self[name]
+        except KeyError as e:
+            raise AttributeError(e)
+
+    def __setattr__(self, name, value):
+        if name in self.__dict__:
+            self.__dict__[name] = value
+        self.__setitem__(name, value)
+
+    def __delattr__(self, name):
+        if name in self.__dict__:
+            del self.__dict__[name]
+        self.__delitem__(name)
 
     def update(self, *args, **kw):
         if args:
@@ -90,37 +115,38 @@ class AttrDict(dict):
         for k, v in itertools.chain(initial, args, kw.items()):
             self[k] = v
 
-    def jamify(self, key):
+    def _jamify(self, key):
         return jamify(key)
 
-    def _interact_with_item(self, special, regular, key, *args):
-        key = self.jamify(key)
-        reflist = self._special_keys.get(key)
-        if reflist is None:
-            return regular(key, *args)
-
-        reflist = reflist.split(".")
-        obj = self
-        for ref in reflist[:-1]:
-            obj = getattr(obj, ref)
-
-        return special(obj, reflist[-1])
+    def _pythonify(self, key):
+        return key.lstrip("-").replace("-", "_")
 
 
 class OptionsProxy(AttrDict):
-    _special_keys = {
-        "--project-config": "_b2.project_config",
-        "--build-dir": "_b2.build_folder",
-    }
+    @property
+    def project_config(self):
+        return self._b2.project_config
+
+    @project_config.setter
+    def project_config(self, value):
+        self._b2.project_config = value
+
+    @property
+    def build_dir(self):
+        return self._b2.build_folder
+
+    @build_dir.setter
+    def build_dir(self, value):
+        self._b2.build_folder = value
 
     def strings(self):
         return (self._stringify(k, v) for (k, v) in self.items())
 
-    def jamify(self, key):
+    def _jamify(self, key):
         if key.startswith('-'):
             return key
 
-        key = super().jamify(key)
+        key = super()._jamify(key)
         if len(key) == 1:
             key = "-" + key
         else:
@@ -153,6 +179,41 @@ class PropertySet(AttrDict):
         super().__init__(*args, **kw)
         self._init_from_conanfile("setting")
         self._init_from_conanfile("option")
+
+        self.toolset = "gcc"
+
+    @property
+    def toolset(self):
+        try:
+            return self.get("toolset")
+        except KeyError as e:
+            raise AttributeError(e)
+
+    @toolset.setter
+    def toolset(self, args):
+        if isinstance(args, six.string_types):
+            full_name = args
+            args = args.split("-", maxsplit=1)
+        else:
+            full_name = None
+        name = tuple(args[:2])
+        args = list(args[2:])
+
+        if args and isinstance(args[-1], dict):
+            kw = args[-1]
+            del args[-1]
+        else:
+            kw = {}
+
+        self._b2.using(name, *args, **kw)
+
+        if full_name is None:
+            full_name = "-".join(name)
+        self.__dict__["toolset"] = full_name
+
+    @toolset.deleter
+    def toolset(self):
+        del self.__dict__["toolset"]
 
     def init_setting_build_type(self, value):
         self["variant"] = str(value).lower()
@@ -327,17 +388,15 @@ class B2(object):
         self._conanfile = conanfile
         self._settings = conanfile.settings
 
+        self.using = ToolsetModulesProxy()
+        self.properties = PropertiesProxy(self)
+
         self.options = OptionsProxy(self)
         self.options.update(
             hash=True,
             j=tools.cpu_count(),
             d=tools.get_env("CONAN_B2_DEBUG", "1"),
         )
-
-        self.properties = PropertiesProxy(self)
-
-        self.using = ToolsetModulesProxy()
-        self.using("gcc")
 
     @folder
     def source_folder(self): pass
@@ -399,6 +458,4 @@ class B2(object):
 
 _project_config_template = '''\
 use-packages "{install_folder}/conanbuildinfo.jam" ;
-{toolset_init}
-project : requirements <toolset>gcc ;
-'''
+{toolset_init}'''
