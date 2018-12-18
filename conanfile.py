@@ -25,6 +25,10 @@ class B2ToolConan(ConanFile):
         self.info.header_only()
 
 
+def jamify(s):
+    return s.replace("_", "-")
+
+
 class folder(object):
     def __init__(self, wrapped):
         self.name = wrapped.__name__
@@ -87,7 +91,7 @@ class AttrDict(dict):
             self[k] = v
 
     def jamify(self, key):
-        return key.replace("_", "-")
+        return jamify(key)
 
     def _interact_with_item(self, special, regular, key, *args):
         key = self.jamify(key)
@@ -292,6 +296,28 @@ class PropertiesProxy(object):
         return self._property_sets[-1]
 
 
+class ToolsetModulesProxy(dict):
+    def __call__(self, name, *args, **kw):
+        self[name] = (args, kw)
+
+    def dumps(self):
+        contents = ""
+        for k, v in self.items():
+            if isinstance(k, tuple):
+                items = list(k)
+            else:
+                items = [k]
+            items += v[0]
+            if v[1]:
+                opts = (
+                    "<{k}>{v}".format(k=jamify(k), v=v)
+                    for k, v in v[1].items()
+                )
+                items.append(" ".join(opts))
+            contents += "using %s ;\n" % " : ".join(items)
+        return contents
+
+
 class B2(object):
     def __init__(self, conanfile):
         """
@@ -309,6 +335,9 @@ class B2(object):
         )
 
         self.properties = PropertiesProxy(self)
+
+        self.using = ToolsetModulesProxy()
+        self.using("gcc")
 
     @folder
     def source_folder(self): pass
@@ -332,6 +361,7 @@ class B2(object):
             self.project_config,
             _project_config_template.format(
                 install_folder=self._conanfile.install_folder,
+                toolset_init=self.using.dumps(),
             )
         )
 
@@ -369,6 +399,6 @@ class B2(object):
 
 _project_config_template = '''\
 use-packages "{install_folder}/conanbuildinfo.jam" ;
-using gcc ;
+{toolset_init}
 project : requirements <toolset>gcc ;
 '''
