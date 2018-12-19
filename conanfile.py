@@ -176,11 +176,17 @@ class OptionsProxy(AttrDict):
 
 class PropertySet(AttrDict):
     def __init__(self, *args, **kw):
+        def init(source, key):
+            value = getattr(source, key, None)
+            if value is None:
+                return
+            getattr(self, "_init_" + key)(value)
+
         super().__init__(*args, **kw)
         self._init_from_conanfile("setting")
-        self._init_from_conanfile("option")
+        init(self._b2._settings, "compiler")
 
-        self.toolset = "gcc"
+        self._init_from_conanfile("option")
 
     @property
     def toolset(self):
@@ -209,11 +215,11 @@ class PropertySet(AttrDict):
 
         if full_name is None:
             full_name = "-".join(name)
-        self.__dict__["toolset"] = full_name
+        dict.__setitem__(self, "toolset", full_name)
 
     @toolset.deleter
     def toolset(self):
-        del self.__dict__["toolset"]
+        dict.__delitem__(self, "toolset")
 
     def init_setting_build_type(self, value):
         self["variant"] = str(value).lower()
@@ -291,6 +297,26 @@ class PropertySet(AttrDict):
         }.get(arch)
         if iset is not None:
             self["instruction_set"] = iset
+
+    def _init_compiler(self, value):
+        name = str(value)
+        toolsets = {
+            "Visual Studio": "msvc",
+            "apple-clang": "clang",
+            "sun-cc": "sun"
+        }
+        name = toolsets.get(name, name)
+
+        version = value.get_safe("version")
+        if value == "Visual Studio":
+            if version == "15":
+                version = "14.1"
+            elif version is not None:
+                version += ".0"
+
+        if version is not None:
+            name = (name, version)
+        self["toolset"] = name
 
     def init_option_shared(self, value):
         self["link"] = "shared" if value else "static"
