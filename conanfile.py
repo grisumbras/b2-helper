@@ -512,10 +512,12 @@ class B2(object):
             return
         self._build(["install"])
 
-    def test(self):
-        if not self._conanfile.should_test:
-            return
-        self._build(["test"])
+    def test(self, force=False):
+        if force or (
+            tools.get_env("CONAN_RUN_TESTS", True)
+            and self._conanfile.should_test
+        ):
+            self._build(["test"])
 
     def _build(self, targets):
         special_options = (

@@ -11,4 +11,5 @@ if [ option.get bar ] != baz { errors.error option bar is not baz ; }
 
 exe example : example.cpp ;
 
-run example : target-name test-example ;
+run example : target-name test ;
+explicit test ;

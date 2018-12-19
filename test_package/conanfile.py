@@ -16,7 +16,7 @@ class B2ToolTestConan(ConanFile):
     options = {"shared": [True, False]}
     default_options = {"shared": False}
 
-    def build(self):
+    def make_builder(self):
         builder = build_helper.B2(self)
         builder.source_folder = "src"
         builder.build_folder = "build"
@@ -26,8 +26,13 @@ class B2ToolTestConan(ConanFile):
 
         builder.properties.threading = "multi"
 
+        return builder
+
+    def build(self):
+        builder = self.make_builder()
         builder.configure()
         builder.build()
 
     def test(self):
-        pass
+        builder = self.make_builder()
+        builder.test()
