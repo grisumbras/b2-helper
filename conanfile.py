@@ -298,7 +298,7 @@ class PropertySet(AttrDict):
             "apple-clang": "clang",
             "sun-cc": "sun"
         }
-        name = toolsets.get(name, name)
+        init = [toolsets.get(name, name)]
 
         version = value.get_safe("version")
         if value == "Visual Studio":
@@ -307,9 +307,57 @@ class PropertySet(AttrDict):
             elif version is not None:
                 version += ".0"
 
-        if version is not None:
-            name = (name, version)
-        self["toolset"] = name
+        command = tools.get_env("CXX") or tools.get_env("CC") or ""
+
+        params = {}
+
+        def get_flags(var):
+            return [f for f in tools.get_env(var, "").split(" ") if f]
+
+        cxxflags = get_flags("CXXFLAGS")
+        cxxflags += get_flags("CPPFLAGS")
+        if cxxflags:
+            params["cxxflags"] = cxxflags
+
+        cflags = get_flags("CFLAGS")
+        if cflags:
+            params["cflags"] = cflags
+
+        ldflags = get_flags("LDFLAGS")
+        if ldflags:
+            params["ldflags"] = ldflags
+
+        archiver = tools.get_env("AR")
+        if archiver:
+            params["archiver"] = archiver
+
+        assembler = tools.get_env("AS")
+        if assembler:
+            params["assembler"] = assembler
+
+        ranlib = tools.get_env("RANLIB")
+        if ranlib:
+            params["ranlib"] = ranlib
+
+        strip = tools.get_env("STRIP")
+        if strip:
+            params["striper"] = strip
+
+        rc = tools.get_env("RC")
+        if rc:
+            key = "resource-compiler" if name == "Visual Studio" else "rc"
+            params[key] = rc
+
+        if version or command or params:
+            init.append(version)
+
+        if command or params:
+            init.append(command)
+
+        if params:
+            init.append(params)
+
+        self["toolset"] = init
 
     def _init_build_type(self, value):
         self["variant"] = str(value).lower()
@@ -331,7 +379,6 @@ class PropertySet(AttrDict):
 
     def _init_static(self, value):
         self.init_option_shared(not value)
-
 
 
 class PropertiesProxy(object):
@@ -387,12 +434,27 @@ class ToolsetModulesProxy(dict):
             items += v[0]
             if v[1]:
                 opts = (
-                    "<{k}>{v}".format(k=jamify(k), v=v)
+                    self._dump_param(k, v)
                     for k, v in v[1].items()
                 )
                 items.append(" ".join(opts))
             contents += "using %s ;\n" % " : ".join(items)
         return contents
+
+    def _dump_param(self, param, value):
+        param = jamify(param)
+        pattern = '<{param}>"{value}"'
+        if (
+            not isinstance(value, six.string_types)
+            and isinstance(value, collections.Iterable)
+        ):
+            return " ".join(
+                (pattern.format(param=param, value=str(v)) for v in value)
+            )
+        else:
+            return pattern.format(param=param, value=str(value))
+
+
 
 
 class B2(object):
