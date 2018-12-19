@@ -54,10 +54,6 @@ class folder(object):
 
 
 class AttrDict(dict):
-    def __init__(self, b2):
-        super().__init__()
-        super().__setattr__("_b2", b2)
-
     def __getitem__(self, key):
         name = self._pythonify(key)
         descriptor = type(self).__dict__.get(name)
@@ -122,6 +118,10 @@ class AttrDict(dict):
 
 
 class OptionsProxy(AttrDict):
+    def __init__(self, b2):
+        super().__init__()
+        dict.__setattr__(self, "_b2", b2)
+
     @property
     def project_config(self):
         return self._b2.project_config
@@ -174,8 +174,12 @@ class OptionsProxy(AttrDict):
 
 
 class PropertySet(AttrDict):
-    def __init__(self, *args, **kw):
-        super().__init__(*args, **kw)
+    def __init__(self, b2, no_defaults=False):
+        super().__init__()
+        dict.__setattr__(self, "_b2", b2)
+
+        if no_defaults:
+            return
 
         for setting in ("os", "arch", "build_type", "compiler", "cppstd"):
             value = getattr(self._b2._conanfile.settings, setting, None)
@@ -381,9 +385,10 @@ class PropertySet(AttrDict):
 
 
 class PropertiesProxy(object):
-    def __init__(self, b2):
+    def __init__(self, b2, no_defaults=False):
         setter = super().__setattr__
         setter("_b2", b2)
+        setter("_no_defaults", no_defaults)
         setter("_property_sets", [])
         self.add()
 
@@ -415,7 +420,7 @@ class PropertiesProxy(object):
         return iter(self._property_sets)
 
     def add(self):
-        self._property_sets.append(PropertySet(self._b2))
+        self._property_sets.append(PropertySet(self._b2, self._no_defaults))
         return self._property_sets[-1]
 
 
@@ -455,7 +460,24 @@ class ToolsetModulesProxy(dict):
 
 
 class B2(object):
-    def __init__(self, conanfile):
+    class mixin(object):
+        def b2_setup_builder(self, builder):
+            return builder
+
+        def build(self):
+            builder = self.b2_setup_builder(B2(self))
+            builder.configure()
+            builder.build()
+
+        def package(self):
+            builder = self.b2_setup_builder(B2(self))
+            builder.install()
+
+        def test(self):
+            builder = self.b2_setup_builder(B2(self))
+            builder.test()
+
+    def __init__(self, conanfile, no_defaults=False):
         """
         :param conanfile: Conanfile instance
         """
@@ -464,15 +486,16 @@ class B2(object):
         self._settings = conanfile.settings
 
         self.using = ToolsetModulesProxy()
-        self.properties = PropertiesProxy(self)
+        self.properties = PropertiesProxy(self, no_defaults)
 
         self.options = OptionsProxy(self)
-        self.options.update(
-            hash=True,
-            j=tools.cpu_count(),
-            d=tools.get_env("CONAN_B2_DEBUG", "1"),
-            prefix=self.package_folder,
-        )
+        if not no_defaults:
+            self.options.update(
+                hash=True,
+                j=tools.cpu_count(),
+                d=tools.get_env("CONAN_B2_DEBUG", "1"),
+                prefix=self.package_folder,
+            )
 
     @folder
     def source_folder(self): pass

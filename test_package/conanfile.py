@@ -6,18 +6,17 @@ from conans import (
 )
 
 
-build_helper = python_requires("b2-helper/0.0.1@grisumbras/testing")
+b2 = python_requires("b2-helper/0.0.1@grisumbras/testing")
 
 
-class B2ToolTestConan(ConanFile):
+class B2ToolTestConan(b2.B2.mixin, ConanFile):
     settings = "os", "compiler", "build_type", "arch", "cppstd",
     generators = "b2"
     build_requires = "boost_build/1.68.0@bincrafters/testing"
     options = {"shared": [True, False]}
     default_options = {"shared": False}
 
-    def make_builder(self):
-        builder = build_helper.B2(self)
+    def b2_setup_builder(self, builder):
         builder.source_folder = "src"
         builder.build_folder = "build"
 
@@ -27,12 +26,3 @@ class B2ToolTestConan(ConanFile):
         builder.properties.threading = "multi"
 
         return builder
-
-    def build(self):
-        builder = self.make_builder()
-        builder.configure()
-        builder.build()
-
-    def test(self):
-        builder = self.make_builder()
-        builder.test()
