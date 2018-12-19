@@ -176,17 +176,19 @@ class OptionsProxy(AttrDict):
 
 class PropertySet(AttrDict):
     def __init__(self, *args, **kw):
-        def init(source, key):
-            value = getattr(source, key, None)
+        super().__init__(*args, **kw)
+
+        for setting in ("os", "arch", "build_type", "compiler", "cppstd"):
+            value = getattr(self._b2._conanfile.settings, setting, None)
             if value is None:
                 return
-            getattr(self, "_init_" + key)(value)
+            getattr(self, "_init_" + setting)(value)
 
-        super().__init__(*args, **kw)
-        self._init_from_conanfile("setting")
-        init(self._b2._settings, "compiler")
-
-        self._init_from_conanfile("option")
+        for option in ("shared", "static"):
+            value = self._b2._conanfile.options.get_safe(option)
+            if value is None:
+                return
+            getattr(self, "_init_" + option)(value)
 
     @property
     def toolset(self):
@@ -221,22 +223,13 @@ class PropertySet(AttrDict):
     def toolset(self):
         dict.__delitem__(self, "toolset")
 
-    def init_setting_build_type(self, value):
-        self["variant"] = str(value).lower()
+    def __str__(self):
+        return "/".join((self._stringify(k, v) for (k, v) in self.items()))
 
-    def init_setting_cppstd(self, value):
-        value = str(value)
-        if value.startswith("gnu"):
-            self["cxxstd_dialect"] = "gnu"
-            value = value[3:]
-        try:
-            if int(value) >= 20:
-                value = "2a"
-        except ValueError:
-            pass
-        self["cxxstd"] = value
+    def _stringify(self, option, value):
+        return "{option}={value}".format(option=option, value=value)
 
-    def init_setting_os(self, host_os):
+    def _init_os(self, host_os):
         if not tools.cross_building(self._b2._settings):
             return
 
@@ -258,7 +251,7 @@ class PropertySet(AttrDict):
         # Conan host OS corresponds to <target-os> in B2
         self["target_os"] = host_os
 
-    def init_setting_arch(self, arch):
+    def _init_arch(self, arch):
         if not tools.cross_building(self._b2._settings):
             return
 
@@ -318,30 +311,27 @@ class PropertySet(AttrDict):
             name = (name, version)
         self["toolset"] = name
 
-    def init_option_shared(self, value):
+    def _init_build_type(self, value):
+        self["variant"] = str(value).lower()
+
+    def _init_cppstd(self, value):
+        value = str(value)
+        if value.startswith("gnu"):
+            self["cxxstd_dialect"] = "gnu"
+            value = value[3:]
+        try:
+            if int(value) >= 20:
+                value = "2a"
+        except ValueError:
+            pass
+        self["cxxstd"] = value
+
+    def _init_shared(self, value):
         self["link"] = "shared" if value else "static"
 
-    def init_option_static(self, value):
+    def _init_static(self, value):
         self.init_option_shared(not value)
 
-    def __str__(self):
-        return "/".join((self._stringify(k, v) for (k, v) in self.items()))
-
-    def _stringify(self, option, value):
-        return "{option}={value}".format(option=option, value=value)
-
-    def _init_from_conanfile(self, source):
-        for name, value in getattr(self._b2._conanfile, source + "s").items():
-            name = "init_%s_%s" % (source, name.replace(".", "_"))
-            if hasattr(self._b2, name):
-                func = getattr(self._b2, name)
-                func(self, value)
-            else:
-                try:
-                    func = self.__getattribute__(name)
-                    func(value)
-                except AttributeError:
-                    continue
 
 
 class PropertiesProxy(object):
