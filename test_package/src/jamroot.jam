@@ -1,6 +1,7 @@
 import errors ;
 import option ;
 import testing ;
+import package ;
 
 project package-test ;
 
@@ -12,4 +13,7 @@ if [ option.get bar ] != baz { errors.error option bar is not baz ; }
 exe example : example.cpp ;
 
 run example : target-name test ;
-explicit test ;
+
+package.install install package-test : : example ;
+
+explicit test install ;

@@ -39,13 +39,12 @@ class folder(object):
             return self
 
         value = getattr(instance, "_" + self.name, None)
-        conanfile = getattr(instance, "_conanfile")
         if not value:
-            return getattr(conanfile, self.name)
+            return getattr(instance._conanfile, self.name)
         elif os.path.isabs(value):
             return value
         else:
-            return os.path.join(getattr(conanfile, self.name), value)
+            return os.path.join(getattr(instance._conanfile, self.name), value)
 
     def __set__(self, instance, value):
         setattr(instance, "_" + self.name, value)
@@ -455,8 +454,6 @@ class ToolsetModulesProxy(dict):
             return pattern.format(param=param, value=str(value))
 
 
-
-
 class B2(object):
     def __init__(self, conanfile):
         """
@@ -474,6 +471,7 @@ class B2(object):
             hash=True,
             j=tools.cpu_count(),
             d=tools.get_env("CONAN_B2_DEBUG", "1"),
+            prefix=self.package_folder,
         )
 
     @folder
@@ -507,10 +505,9 @@ class B2(object):
             return
         self._build(targets)
 
-    def install(self):
-        if not self._conanfile.should_install:
-            return
-        self._build(["install"])
+    def install(self, force=True):
+        if force or self._conanfile.should_install:
+            self._build(["install"])
 
     def test(self, force=False):
         if force or (
