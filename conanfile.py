@@ -40,11 +40,11 @@ class folder(object):
 
         value = getattr(instance, "_" + self.name, None)
         if not value:
-            return getattr(instance._conanfile, self.name)
+            return getattr(instance.conanfile, self.name)
         elif os.path.isabs(value):
             return value
         else:
-            return os.path.join(getattr(instance._conanfile, self.name), value)
+            return os.path.join(getattr(instance.conanfile, self.name), value)
 
     def __set__(self, instance, value):
         setattr(instance, "_" + self.name, value)
@@ -182,13 +182,13 @@ class PropertySet(AttrDict):
             return
 
         for setting in ("os", "arch", "build_type", "compiler", "cppstd"):
-            value = getattr(self._b2._conanfile.settings, setting, None)
+            value = getattr(self._b2.conanfile.settings, setting, None)
             if value is None:
                 return
             getattr(self, "_init_" + setting)(value)
 
         for option in ("shared", "static"):
-            value = self._b2._conanfile.options.get_safe(option)
+            value = self._b2.conanfile.options.get_safe(option)
             if value is None:
                 return
             getattr(self, "_init_" + option)(value)
@@ -233,7 +233,7 @@ class PropertySet(AttrDict):
         return "{option}={value}".format(option=option, value=value)
 
     def _init_os(self, host_os):
-        if not tools.cross_building(self._b2._settings):
+        if not tools.cross_building(self._b2.conanfile.settings):
             return
 
         try:
@@ -255,7 +255,7 @@ class PropertySet(AttrDict):
         self["target_os"] = host_os
 
     def _init_arch(self, arch):
-        if not tools.cross_building(self._b2._settings):
+        if not tools.cross_building(self._b2.conanfile.settings):
             return
 
         arch = str(arch)
@@ -482,8 +482,7 @@ class B2(object):
         :param conanfile: Conanfile instance
         """
 
-        self._conanfile = conanfile
-        self._settings = conanfile.settings
+        self.conanfile = conanfile
 
         self.using = ToolsetModulesProxy()
         self.properties = PropertiesProxy(self, no_defaults)
@@ -511,31 +510,31 @@ class B2(object):
         return os.path.join(self.build_folder, "project-config.jam")
 
     def configure(self):
-        if not self._conanfile.should_configure:
+        if not self.conanfile.should_configure:
             return
 
         mkdir(self.build_folder)
         tools.save(
             self.project_config,
             _project_config_template.format(
-                install_folder=self._conanfile.install_folder,
+                install_folder=self.conanfile.install_folder,
                 toolset_init=self.using.dumps(),
             )
         )
 
     def build(self, *targets):
-        if not (targets or self._conanfile.should_build):
+        if not (targets or self.conanfile.should_build):
             return
         self._build(targets)
 
     def install(self, force=True):
-        if force or self._conanfile.should_install:
+        if force or self.conanfile.should_install:
             self._build(["install"])
 
     def test(self, force=False):
         if force or (
             tools.get_env("CONAN_RUN_TESTS", True)
-            and self._conanfile.should_test
+            and self.conanfile.should_test
         ):
             self._build(["test"])
 
@@ -552,8 +551,8 @@ class B2(object):
         )
         with tools.chdir(self.source_folder):
             b2_command = "b2 " + join_arguments(args)
-            self._conanfile.output.info("%s" % b2_command)
-            self._conanfile.run(b2_command)
+            self.conanfile.output.info("%s" % b2_command)
+            self.conanfile.run(b2_command)
 
 
 _project_config_template = '''\
