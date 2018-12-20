@@ -74,6 +74,23 @@ class MyConan(ConanFile):
         builder.install()
 ----
 
+=== Using with pre-generated `project-config.jam`
+
+By default the helper creates a `project-config.jam` which initializes modules
+and loads files created by generator. Some projects prefer to create that file
+themselves via a bootstrap script. In order to support such use cases the
+helper provides mutable property `project_config` and an attribute `include`
+that holds a list of jamfiles to be included by configuration module.
+
+[source,python]
+----
+class MyConan(ConanFile):
+    def b2_setup_builder(self, builder)
+        builder.project_config = os.path.join(self.build_folder, "helper.jam")
+        builder.include.append(self.bootstrap())
+        return builder
+----
+
 
 == API
 

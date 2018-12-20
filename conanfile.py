@@ -710,6 +710,7 @@ class B2(object):
         """
 
         self.conanfile = conanfile
+        self.include = []
 
         self.using = ToolsetModulesProxy()
         self.properties = PropertiesProxy(self, no_defaults)
@@ -751,6 +752,7 @@ class B2(object):
 
     @executable.setter
     def executable(self, value):
+        # pylint: disable=attribute-defined-outside-init
         self._executable = value
 
     @executable.deleter
@@ -760,9 +762,23 @@ class B2(object):
     @property
     def project_config(self):
         """
-        Path to project configuration file that will be created by the helper
+        Path to configuration file that will be created by the helper and
+        loaded by Boost.Build as project configuration
         """
+
+        result = getattr(self, "_project_config", None)
+        if result is not None:
+            return result
         return os.path.join(self.build_folder, "project-config.jam")
+
+    @project_config.setter
+    def project_config(self, value):
+        # pylint: disable=attribute-defined-outside-init
+        self._project_config = value
+
+    @project_config.deleter
+    def project_config(self):
+        del self._project_config
 
     def configure(self):
         """Create the project configuration file"""
@@ -778,6 +794,7 @@ class B2(object):
             _project_config_template.format(
                 install_folder=path,
                 toolset_init=self.using.dumps(),
+                include=self._dump_includes(),
             )
         )
 
@@ -834,7 +851,13 @@ class B2(object):
         with tools.chdir(self.source_folder):
             self.conanfile.run(join_arguments(args))
 
+    def _dump_includes(self):
+        return "\n".join((
+            ('include "%s" ;' % file) for file in self.include
+        ))
 
 _project_config_template = '''\
 use-packages "{install_folder}/conanbuildinfo.jam" ;
-{toolset_init}'''
+{toolset_init}
+{include}
+'''
