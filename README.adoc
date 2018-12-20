@@ -7,6 +7,13 @@ ____
 
 == Install
 
+Add the necessary conan remote:
+
+[source,shell]
+----
+$ conan remote add grisumbras https://api.bintray.com/conan/grisumbras/conan
+----
+
 Inside your `conanfile.py` use `python_requires` to install and import the
 package:
 
