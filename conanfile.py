@@ -739,6 +739,25 @@ class B2(object):
         pass
 
     @property
+    def executable(self):
+        """
+        Boost.Build executable that will be used.
+        """
+        exe = getattr(self, "_executable", None)
+        if exe is None:
+            return "b2.exe" if tools.os_info.is_windows else "b2"
+        else:
+            return exe
+
+    @executable.setter
+    def executable(self, value):
+        self._executable = value
+
+    @executable.deleter
+    def executable(self):
+        del self._executable
+
+    @property
     def project_config(self):
         """
         Path to project configuration file that will be created by the helper
@@ -803,14 +822,14 @@ class B2(object):
             "--build-dir=" + self.build_folder,
         )
         args = itertools.chain(
+            [self.executable],
             special_options,
             self.options.strings(),
             (str(ps) for ps in self.properties),
             targets,
         )
         with tools.chdir(self.source_folder):
-            b2_command = "b2 " + join_arguments(args)
-            self.conanfile.run(b2_command)
+            self.conanfile.run(join_arguments(args))
 
 
 _project_config_template = '''\
