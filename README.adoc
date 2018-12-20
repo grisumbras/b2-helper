@@ -1,0 +1,133 @@
+= conan-b2-helper _(b2-helper)_
+
+____
+https://conan.io[Conan] helper for projects built with
+https://boostorg.github.io/build[Boost.Build]
+____
+
+== Install
+
+Inside your `conanfile.py` use `python_requires` to install and import the
+package:
+
+[source,python]
+----
+from conans import python_requires
+b2 = python_requires("b2-helper/[>0.1]@grisumbras/stable")
+----
+
+== Usage
+
+=== Using mixin
+
+The simplest way to use the package is via a mixin class:
+
+[source,python]
+----
+class MyConan(b2.B2.mixin, ConanFile):
+    name = "..."
+    version = "..."
+    settings = "os", "arch", "compiler", "build_type"
+----
+
+The mixin provides default implementations for methods `build`, `package` and
+`test`. In order for the mixin to work without any customization, project's
+jamroot file should be in `conanfile.source_folder` and the project should
+require no configuration beyond toolset initialization. If customization is
+required, the `ConanFile` subclass should override method `b2_setup_builder`:
+
+[source,python]
+----
+class MyConan(b2.B2.mixin, ConanFile):
+    def b2_setup_builder(self, builder):
+        builder.source_folder = "src"
+        builder.build_folder = "build"
+        builder.options.debug_building = True
+        builder.properties.runtime_link = "static"
+        return builder
+----
+
+=== Using helper
+
+The helper can be used by itself pretty much the same way as standard build
+helpers.
+
+[source,python]
+----
+class MyConan(ConanFile):
+    def build(self):
+        builder = b2.B2(self)
+        builder.source_folder = "src"
+        builder.build_folder = "build"
+        builder.options.debug_building = True
+        builder.properties.runtime_link = "static"
+        builder.configure()
+        builder.build()
+        builder.test()
+        builder.install()
+----
+
+
+== API
+
+=== `class B2`
+
+==== Methods
+
+* `def __init__(self, conanfile, no_defaults=False)`
+  Constructor. If `no_defaults == True`, does not fill default property set
+  with default properties.
+
+* `def using(self, name, *args, **kw)`
+  Initializes a toolset module. `self.using(("a", "b"), "c", {"d": "e"})` is
+  equivalent to putting `using a : b : c : <d>"e" ;` in Boost.Build
+  configuration.
+
+* `def configure(self)`
+  Creates project configuration file in `self.project_config`.
+
+* `def build(self, *targets)`
+  Builds targets `targets`. If no `targets` were specified, builds default
+  targets, but only if `conanfile.should_build == True`.
+
+* `def install(self, force=False)`
+  Builds target `install` if `conanfile.should_install == True` or if
+  `force == True`.
+
+* `def test(self, force=False)`
+  Builds target `test` if `conanfile.should_test == True` and if environment
+  variable `CONAN_RUN_TESTS` is either not defined or is equals `True`, or if
+  `force == True`.
+
+==== Attributes
+
+* `source_folder` path to folder that contains jamroot file.
+* `build_folder` path to folder that will contain build artifacts.
+* `package_folder` path to folder that will contain install artifacts.
+* `project_config` path to created project configuration file.
+* `executable` Boost.Build executable that will be used.
+* `properties` a collection of property sets that will be used in build
+               request.
+* `options` a collection of CLI options.
+
+
+=== `class B2.mixin`
+TBD
+
+=== `class OptionsProxy`
+TBD
+
+=== `class PropertiesProxy`
+TBD
+
+=== `class PropertySet`
+TBD
+
+== Maintainer
+Dmitry Arkhipov <grisumbras@gmail.com>
+
+== Contributing
+Patches welcome!
+
+== License
+link:LICENSE[BSL-1.0] (C) 2018 Dmitry Arkhipov
