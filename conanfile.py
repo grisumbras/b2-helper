@@ -340,11 +340,15 @@ class PropertySet(AttrDict):
     @toolset.setter
     def toolset(self, args):
         if isinstance(args, six.string_types):
-            full_name = args
             args = args.split("-", maxsplit=1)
+
+        name = tuple([str(a) for a in args[:2] if a])
+        if len(name) < 2:
+            name = name[0]
+            full_name = name
         else:
-            full_name = None
-        name = tuple(args[:2])
+            full_name = "-".join(name)
+
         args = list(args[2:])
 
         if args and isinstance(args[-1], dict):
@@ -355,8 +359,6 @@ class PropertySet(AttrDict):
 
         self._b2.using(name, *args, **kw)
 
-        if full_name is None:
-            full_name = "-".join(name)
         dict.__setitem__(self, "toolset", full_name)
 
     @toolset.deleter
