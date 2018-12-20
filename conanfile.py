@@ -579,12 +579,20 @@ class PropertiesProxy(object):
     def __iter__(self):
         return iter(self._property_sets)
 
-    def add(self):
+    def add(self, no_defaults=None):
         """
-        Adds and returns a property set. It will be filled with default
-        properties, if this instance was initialized with `no_defaults=True`.
+        Adds and returns a property set.
+
+        :param defaults: if `False`, fill with default properties;
+                         if `True`, do not fill with default properties;
+                         if `None`, fill with default properties if
+                         `no_defaults=True` was passed to constructor.
         """
-        self._property_sets.append(PropertySet(self._b2, self._no_defaults))
+
+        if no_defaults is None:
+            no_defaults = self._no_defaults
+
+        self._property_sets.append(PropertySet(self._b2, no_defaults))
         return self._property_sets[-1]
 
 
