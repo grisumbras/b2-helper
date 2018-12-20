@@ -1,3 +1,9 @@
+# Copyright (c) 2018 Dmitry Arkhipov <grisumbras@gmail.com>
+#
+# Distributed under the Boost Software License, Version 1.0. (See accompanying
+# file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+
 from conans import (
     ConanFile,
     tools,
@@ -20,6 +26,7 @@ class B2ToolConan(ConanFile):
     url = "http://github.com/grisumbras/b2-tools"
     homepage = url
     license = "BSL-1.0"
+    exports = "LICENSE*"
 
     def package_info(self):
         self.info.header_only()
