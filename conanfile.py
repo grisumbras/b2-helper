@@ -659,19 +659,46 @@ class B2(object):
     """
 
     class mixin(object):
+        """
+        Convenience mixin class that enables building with Boost.Build.
+        Just add it to the list of bases for your ConanFile subclass and it
+        will override methods `build`, `package` and `test`. Note, since
+        `ConanFile` class declares those methods, you need to put this mixin
+        *before* it. Example:
+
+            b2 = python_requires(...)
+            class MyConan(b2.B2.mixin, ConanFile):
+                name = "..."
+                version = "..."
+                settings = "os", "arch", "compiler", "build_type"
+
+        And that's it.
+        """
+
         def b2_setup_builder(self, builder):
+            """
+            If you want to customize the build helper, you need to override
+            this method. It should return an instance of `B2` class.
+
+            :param builder: an instance of `B2` class.
+            """
+
             return builder
 
         def build(self):
+            """Configures and builds default targets."""
+
             builder = self.b2_setup_builder(B2(self))
             builder.configure()
             builder.build()
 
         def package(self):
+            """Builds target `install`."""
             builder = self.b2_setup_builder(B2(self))
             builder.install()
 
         def test(self):
+            """Builds target `test`."""
             builder = self.b2_setup_builder(B2(self))
             builder.test()
 
