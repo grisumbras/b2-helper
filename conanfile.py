@@ -770,10 +770,13 @@ class B2(object):
             return
 
         mkdir(self.build_folder)
+        path = os.path.relpath(
+            self.conanfile.install_folder, self.source_folder
+        )
         tools.save(
             self.project_config,
             _project_config_template.format(
-                install_folder=self.conanfile.install_folder,
+                install_folder=path,
                 toolset_init=self.using.dumps(),
             )
         )
