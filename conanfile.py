@@ -33,10 +33,32 @@ class B2ToolConan(ConanFile):
 
 
 def jamify(s):
+    """
+    Convert a valid Python identifier to a string that follows Boost.Build
+    identifier convention.
+    """
     return s.replace("_", "-")
 
 
 class folder(object):
+    """
+    Descriptor class that implements fallback mechanics for accessing
+    Conan folders. When used like this:
+
+        @folder
+        def foobar_folder(self): pass
+
+    `foobar_folder` becomes a property-like object that sets and deletes
+    `self._foobar_folder` and uses the following algorithm for getting a value:
+
+        * if `self` does not have attribure `_foobar_folder`, return
+          `self.conanfile.foobar_folder`;
+        * else, if the attribute's value is an absolute path, return it
+          unchanged;
+        * else return
+          `os.path.join(self.conanfile.foobar_folder, self._foobar_folder)`.
+    """
+
     def __init__(self, wrapped):
         self.name = wrapped.__name__
         functools.update_wrapper(self, wrapped)
@@ -61,6 +83,32 @@ class folder(object):
 
 
 class AttrDict(dict):
+    """
+    dict subclass that allows accessing keys as attributes (but with extra
+    features).
+
+    On dictionary access, a key is first converted to a valid Pyton identifier
+    and then checked if it corresponds to an attribute of the instance. If it
+    does, the attribute is accessed as a descriptor. If it doesn't, the key is
+    converted to the string corresponding to its use in Boost.Build
+    (by default, `jamify` is applied, but subclasses may modify this behavior).
+    After that, that string is used as a final dictionary key.
+
+    On attribute access a key is checked to correspond to an attribute on
+    instance, then dictionary access is performed.
+
+    For example:
+
+        d = AttrDict()
+        d["foo-bar"] = "baz"
+        d["foo_bar"] = "baz" # does the same
+        d.foo_bar = "baz"    # does the same
+        list(d.items()) # [("foo-bar", "baz")]
+
+    The special treatment of descriptor attributes allows tweaking the behavior
+    for some keys (see subclasses for examples).
+    """
+
     def __getitem__(self, key):
         name = self._pythonify(key)
         descriptor = type(self).__dict__.get(name)
@@ -125,12 +173,37 @@ class AttrDict(dict):
 
 
 class OptionsProxy(AttrDict):
+    """
+    AttrDict subclass that is specifically tailored for Boost.Build CLI
+    options. On key/attribute access, when keys are jamified they are also
+    prepended with dashes. Single letter keys are prepended with 1 dash,
+    multi-letter keys are prepended with 2 dashes. For example:
+
+        o = OptionsProxy(b2)
+        o["--foo-bar"] = "baz"
+        o["foo-bar"] = "baz" # does the same
+        o["foo_bar"] = "baz" # does the same
+        o.foo_bar = "baz"    # does the same
+        o["-x"] = 1
+        o["x"] = 1 # does the same
+        o.x = 1    # does the same
+        list(o.items()) # [("--foo-bar", "baz"), ("-x", 1)]
+    """
+
     def __init__(self, b2):
+        """
+        :param b2: associated B2 instance.
+        """
+
         super().__init__()
         dict.__setattr__(self, "_b2", b2)
 
     @property
     def project_config(self):
+        """
+        Forwards to associated B2 instance's property `project_config`.
+        """
+
         return self._b2.project_config
 
     @project_config.setter
@@ -139,6 +212,10 @@ class OptionsProxy(AttrDict):
 
     @property
     def build_dir(self):
+        """
+        Forwards to associated B2 instance's property `build_folder`.
+        """
+
         return self._b2.build_folder
 
     @build_dir.setter
@@ -146,6 +223,15 @@ class OptionsProxy(AttrDict):
         self._b2.build_folder = value
 
     def strings(self):
+        """
+        Returns a generator that yields options converted to strings.
+        If an option O has a value V, then the function yields:
+
+            * "O v [v...]" for all v in V, if V iterable and is not a string;
+            * "OV", if O is a short option (dash followed by a letter);
+            * "O=V" otherwise.
+        """
+
         return (self._stringify(k, v) for (k, v) in self.items())
 
     def _jamify(self, key):
@@ -181,7 +267,21 @@ class OptionsProxy(AttrDict):
 
 
 class PropertySet(AttrDict):
+    """
+    AttrDict subclass that is specifically tailored for Boost.Build property
+    sets specified using CLI.
+    """
+
     def __init__(self, b2, no_defaults=False):
+        """
+        Initializes PropertySet object. If defaults are not disabled, collects
+        properties from `b2.conanfile.settings` and `b2.conanfile.options`.
+
+        :param b2: associated B2 instance;
+        :param no_defaults: disable collecting default values from conanfile's
+                            settings and options.
+        """
+
         super().__init__()
         dict.__setattr__(self, "_b2", b2)
 
@@ -202,6 +302,36 @@ class PropertySet(AttrDict):
 
     @property
     def toolset(self):
+        """
+        Sets's the current property set's `toolset` property and requires its
+        initialization from the associated B2 instance. For example,
+
+            ps.toolset = "gcc-8"
+
+        sets the `toolset` property to `gcc-8` and also invokes
+
+            b2.using("gcc", "8")
+
+        on the associated B2 instance.
+
+        Allowed values:
+
+            * string `s`. Sets `toolset` property to s. If s matches pattern
+              `name-version`, then `b2.using((name, version))` is called
+              for associated B2 instance. Otherwise, `b2.using(s)` is called.
+            * any iterable `a`. Sets `toolset` property to `a[0]-a[1]`. If
+              `a[-1]` is a dict calls
+              `b2.using(tuple(a[:2]), *a[2:-1], **a[-1])` for associated B2
+              instance. Otherwise, calls `b2.using(tuple(a[:2]), *a[2:])`.
+
+        Examples:
+
+            ps.toolset = "gcc"                            # b2.using("gcc",)
+            ps.toolset = "msvc-14.1"                      # b2.using(("msvc", "14.1"))
+            ps.toolset = ("sun", None, "/opt/sun/bin/CC") # b2.using("sun", "/opt/sun/bin/CC")
+            ps.toolset = ("gcc", ", {"cxxflags: "-Wall"}) # b2.using("gcc", cxxflags="-Wall")
+        """
+
         try:
             return self.get("toolset")
         except KeyError as e:
@@ -392,7 +522,30 @@ class PropertySet(AttrDict):
 
 
 class PropertiesProxy(object):
+    """
+    Proxy object that allows accessing property sets for associated B2
+    instance. Provides both dict and attribute access for its first property
+    set. Also, provides index and iterator access to all property sets.
+    Examples:
+
+        props.toolset = "gcc"
+        props.toolset    # "gcc"
+        props[0].toolset # "gcc"
+
+        props.add().toolset = "msvc"
+        props[1].toolset # "msvc"
+    """
+
     def __init__(self, b2, no_defaults=False):
+        """
+        Initializes this instance. Creates a single property set element.
+
+        :param b2: associated B2 instance;
+        :param no_defaults: disable collecting default values from conanfile's
+                            settings and options for the original and all added
+                            property sets.
+        """
+
         setter = super().__setattr__
         setter("_b2", b2)
         setter("_no_defaults", no_defaults)
@@ -427,15 +580,39 @@ class PropertiesProxy(object):
         return iter(self._property_sets)
 
     def add(self):
+        """
+        Adds and returns a property set. It will be filled with default
+        properties, if this instance was initialized with `no_defaults=True`.
+        """
         self._property_sets.append(PropertySet(self._b2, self._no_defaults))
         return self._property_sets[-1]
 
 
 class ToolsetModulesProxy(dict):
+    """
+    dict subclass that acts as a collection of toolset modules.
+    """
+
     def __call__(self, name, *args, **kw):
+        """
+        Register or update initialization of a toolset module.
+
+        :param name: name of the module or name-version pair;
+        :param args: positional arguments to module initialization ;
+        :param kw: options for module initialization ;
+        """
+
         self[name] = (args, kw)
 
     def dumps(self):
+        """
+        Dumps all toolset module configuraions into a multiline string usable
+        as a part of Boost.Build configuration file.
+        For example, if a module was registerd via
+        `self.using(("a", "b"), "c", "d", e="f")`, then result will contain
+        the line `using a : b : c : d : <e>"f" ;`
+        """
+
         contents = ""
         for k, v in self.items():
             if isinstance(k, tuple):
@@ -467,6 +644,10 @@ class ToolsetModulesProxy(dict):
 
 
 class B2(object):
+    """
+    Build helper for Boost.Build build system.
+    """
+
     class mixin(object):
         def b2_setup_builder(self, builder):
             return builder
@@ -487,6 +668,8 @@ class B2(object):
     def __init__(self, conanfile, no_defaults=False):
         """
         :param conanfile: Conanfile instance
+        :param no_defaults: disable collecting default values from conanfile's
+                            settings and options.
         """
 
         self.conanfile = conanfile
@@ -504,19 +687,29 @@ class B2(object):
             )
 
     @folder
-    def source_folder(self): pass
+    def source_folder(self):
+        """Directory that contains jamroot file"""
+        pass
 
     @folder
-    def build_folder(self): pass
+    def build_folder(self):
+        """Directory that will contain build artifacts"""
+        pass
 
     @folder
-    def package_folder(self): pass
+    def package_folder(self):
+        """Directory that will contain installed artifacts (install prefix)"""
+        pass
 
     @property
     def project_config(self):
+        """
+        Path to project configuration file that will be created by the helper
+        """
         return os.path.join(self.build_folder, "project-config.jam")
 
     def configure(self):
+        """Create the project configuration file"""
         if not self.conanfile.should_configure:
             return
 
@@ -530,15 +723,37 @@ class B2(object):
         )
 
     def build(self, *targets):
+        """
+        Run Boost.Build and build targets `targets` using the active options,
+        and property sets. Requires `self.configure()` to have been called
+        before with the current configuration.
+
+        :param targets: target references that will be built.
+        """
         if not (targets or self.conanfile.should_build):
             return
         self._build(targets)
 
     def install(self, force=True):
+        """
+        Run Boost.Build to build target `install`. Doesn't do anything if
+        `conanfile.should_install` is falsey.
+
+        :param force: build anyway.
+        """
+
         if force or self.conanfile.should_install:
             self._build(["install"])
 
     def test(self, force=False):
+        """
+        Run Boost.Build to build target `test`. Doesn't do anything if
+        `conanfile.should_test` is falsey or if environment variable
+        `CONAN_RUN_TESTS` is defined and is falsey.
+
+        :param force: build anyway.
+        """
+
         if force or (
             tools.get_env("CONAN_RUN_TESTS", True)
             and self.conanfile.should_test
