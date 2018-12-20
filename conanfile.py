@@ -551,7 +551,6 @@ class B2(object):
         )
         with tools.chdir(self.source_folder):
             b2_command = "b2 " + join_arguments(args)
-            self.conanfile.output.info("%s" % b2_command)
             self.conanfile.run(b2_command)
 
 
