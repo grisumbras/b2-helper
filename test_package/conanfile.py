@@ -18,7 +18,7 @@ b2 = python_requires("b2-helper/0.0.1@grisumbras/testing")
 class B2ToolTestConan(b2.B2.mixin, ConanFile):
     settings = "os", "compiler", "build_type", "arch", "cppstd",
     generators = "b2"
-    build_requires = "boost_build/1.68.0@bincrafters/testing"
+    build_requires = "boost_build/1.69.0@bincrafters/stable"
     options = {"shared": [True, False]}
     default_options = {"shared": False}
 
