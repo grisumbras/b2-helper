@@ -12,7 +12,7 @@ from conans import (
 )
 
 
-b2 = python_requires("b2-helper/0.0.1@grisumbras/testing")
+b2 = python_requires("b2-helper/0.1.0@grisumbras/testing")
 
 
 class B2ToolTestConan(b2.B2.mixin, ConanFile):
