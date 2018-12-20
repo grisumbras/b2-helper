@@ -13,7 +13,7 @@ package:
 [source,python]
 ----
 from conans import python_requires
-b2 = python_requires("b2-helper/[>0.1]@grisumbras/stable")
+b2 = python_requires("b2-helper/[>=0.1]@grisumbras/testing")
 ----
 
 == Usage
