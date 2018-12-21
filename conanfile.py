@@ -675,6 +675,24 @@ class B2(object):
         And that's it.
         """
 
+        def __init__(self, *args, **kw):
+            """
+            Constructor. Adds `b2` generator if it wasn't present already.
+            """
+
+            super().__init__(*args, **kw)
+
+            if not hasattr(self, "generators"):
+                self.generators = ("b2",)
+            elif "b2" not in self.generators:
+                generators = self.generators
+                if isinstance(generators, six.string_types):
+                    generators = [generators]
+                else:
+                    generators = list(generators)
+                generators.append("b2")
+                self.generators = tuple(generators)
+
         def b2_setup_builder(self, builder):
             """
             If you want to customize the build helper, you need to override
@@ -853,6 +871,7 @@ class B2(object):
         return "\n".join((
             ('include "%s" ;' % file) for file in self.include
         ))
+
 
 _project_config_template = '''\
 use-packages "{install_folder}/conanbuildinfo.jam" ;
