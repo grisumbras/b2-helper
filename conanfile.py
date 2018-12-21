@@ -727,23 +727,21 @@ class B2(object):
     @folder
     def source_folder(self):
         """Directory that contains jamroot file"""
-        pass
 
     @folder
     def build_folder(self):
         """Directory that will contain build artifacts"""
-        pass
 
     @folder
     def package_folder(self):
         """Directory that will contain installed artifacts (install prefix)"""
-        pass
 
     @property
     def executable(self):
         """
         Boost.Build executable that will be used.
         """
+
         exe = getattr(self, "_executable", None)
         if exe is None:
             return "b2.exe" if tools.os_info.is_windows else "b2"
