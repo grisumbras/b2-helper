@@ -289,9 +289,9 @@ class PropertySet(AttrDict):
             return
 
         for setting in ("os", "arch", "build_type", "compiler", "cppstd"):
-            value = getattr(self._b2.conanfile.settings, setting, None)
-            if value is None:
+            if self._b2.conanfile.settings.get_safe(setting) is None:
                 continue
+            value = getattr(self._b2.conanfile.settings, setting)
             getattr(self, "_init_" + setting)(value)
 
         for option in ("shared", "static"):
@@ -505,8 +505,6 @@ class PropertySet(AttrDict):
         self["variant"] = str(value).lower()
 
     def _init_cppstd(self, value):
-        print(type(value))
-        print(repr(value))
         value = str(value)
         if value.startswith("gnu"):
             self["cxxstd_dialect"] = "gnu"
