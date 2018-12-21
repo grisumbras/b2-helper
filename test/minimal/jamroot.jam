@@ -1,0 +1,9 @@
+import testing ;
+import package ;
+
+project my-project ;
+
+exe main : main.cpp ;
+run main : target-name test ;
+package.install install my-project : : main ;
+explicit test install ;
