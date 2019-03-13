@@ -13,6 +13,7 @@ here=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
 cd $here
 
 export CONAN_PACKAGE_VERSION=$(conan inspect .. -a version | cut -d\  -f2)
+export PYTHONPATH=$here/modules:$PYTHONPATH
 
 run_test()  {
   test_name=$1
@@ -31,3 +32,4 @@ run_test()  {
 }
 
 run_test minimal
+run_test pre-generated

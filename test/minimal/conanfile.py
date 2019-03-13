@@ -5,22 +5,15 @@
 
 
 import os
-from conans import (
-    ConanFile,
-    python_requires,
+from conans import ConanFile
+from get_helper_package import (
+    b2,
+    b2_reference,
 )
 
 
-package_version = os.environ.get("CONAN_PACKAGE_VERSION", "[>0]")
-package_username = os.environ.get("CONAN_USERNAME", "grisumbras")
-package_channel = os.environ.get("CONAN_CHANNEL", "dev")
-b2 = python_requires("b2-helper/{version}@{username}/{channel}".format(
-    version=package_version,
-    username=package_username,
-    channel=package_channel,
-))
-
-
 class MyConan(b2.B2.mixin, ConanFile):
-    requires = "boost_build/1.69.0@bincrafters/stable"
+    """This is pretty much the bare minimum package definition"""
+
+    requires = b2_reference
     exports_sources = "*.jam", "*.cpp"

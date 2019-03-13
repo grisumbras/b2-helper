@@ -10,6 +10,7 @@ variables:
   CONAN_USERNAME: $CI_PROJECT_NAMESPACE
   CONAN_CHANNEL: testing
   UPLOAD_REPO: https://api.bintray.com/conan/grisumbras/conan
+  CONAN_PRINT_RUN_COMMANDS: 1
 
 
 test:
