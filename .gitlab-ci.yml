@@ -12,27 +12,14 @@ variables:
   UPLOAD_REPO: https://api.bintray.com/conan/grisumbras/conan
 
 
-.test:
+test:
   except:
     - /^wip\//
   stage: test
   before_script:
-    - if ! pyenv which conan 2>/dev/null; then
-    -   pip install -q --no-cache-dir conan
-    - fi
     - conan profile new --detect default >/dev/null
     - conan profile update settings.compiler.libcxx=libstdc++11 default
     - conan remote add bincrafters https://api.bintray.com/conan/bincrafters/public-conan
     - conan remote add upload $UPLOAD_REPO
   script:
     - conan create . $CONAN_USERNAME/$CONAN_CHANNEL --build missing
-
-test:python3:
-  extends: .test
-  variables:
-    PYENV_VERSION: 3.7.1
-
-.test:python2:
-  extends: .test
-  variables:
-    PYENV_VERSION: system
