@@ -289,10 +289,8 @@ class PropertySet(AttrDict):
             return
 
         for setting in ("os", "arch", "build_type", "compiler", "cppstd"):
-            if self._b2.conanfile.settings.get_safe(setting) is None:
-                continue
-            value = getattr(self._b2.conanfile.settings, setting)
-            getattr(self, "_init_" + setting)(value)
+            self._init_setting(setting)
+        self._init_setting("os_target", "os")
 
         for option in ("shared", "static"):
             value = self._b2.conanfile.options.get_safe(option)
@@ -521,6 +519,12 @@ class PropertySet(AttrDict):
 
     def _init_static(self, value):
         self.init_option_shared(not value)
+
+    def _init_setting(self, setting, alias=None):
+        if self._b2.conanfile.settings.get_safe(setting) is None:
+            return
+        value = getattr(self._b2.conanfile.settings, setting)
+        getattr(self, "_init_" + (alias or setting))(value)
 
 
 class PropertiesProxy(object):
