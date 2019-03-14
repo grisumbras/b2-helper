@@ -412,14 +412,13 @@ class PropertySet(AttrDict):
                 return "mips1"
         self["architecture"] = architecture(arch)
 
-        def address_model(arch):
-            if arch in (
-                    "x86_64", "ppc64", "ppc64le", "mips64", "armv8", "sparcv9"
-            ):
-                return 64
-            else:
-                return 32
-        self["address_model"] = address_model(arch)
+        if arch in (
+            "x86_64", "ppc64", "ppc64le", "mips64", "armv8", "sparcv9"
+        ):
+            am = 64
+        else:
+            am = 32
+        self["address_model"] = am
 
         iset = {
             "ppc64": "powerpc64",
