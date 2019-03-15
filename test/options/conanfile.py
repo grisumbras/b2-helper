@@ -13,13 +13,11 @@ from get_helper_package import (
 
 
 class B2ToolTestConan(b2.B2.mixin, ConanFile):
-    settings = "os", "compiler", "build_type", "arch", "cppstd",
     build_requires = b2_reference
-    options = {"shared": [True, False]}
-    default_options = {"shared": False}
     exports_sources = "*.cpp", "*.jam"
 
     def b2_setup_builder(self, builder):
-        builder.properties.threading = "multi"
-
+        builder.options.foo = True
+        builder.options["bar"] = 1234
+        builder.options.update(baz="foobar")
         return builder

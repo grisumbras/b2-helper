@@ -4,17 +4,11 @@
 # file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-import errors ;
-import option ;
 import testing ;
 import package ;
 
 project package-test ;
 
-
-if [ option.get foo : : yes ] != yes { errors.error option foo not set ; }
-
-if [ option.get bar ] != baz { errors.error option bar is not baz ; }
 
 exe example : example.cpp ;
 

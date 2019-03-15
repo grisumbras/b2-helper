@@ -1,0 +1,22 @@
+# Copyright (c) 2019 Dmitry Arkhipov <grisumbras@gmail.com>
+#
+# Distributed under the Boost Software License, Version 1.0. (See accompanying
+# file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+
+import errors ;
+import option ;
+import testing ;
+import package ;
+
+project my-project ;
+
+
+if [ option.get foo : : yes ] != yes { errors.error option foo not set ; }
+if [ option.get bar ] != 1234 { errors.error option bar is not 1234 ; }
+if [ option.get baz ] != foobar { errors.error option baz is not foobar ; }
+
+exe main : main.cpp ;
+run main : target-name test ;
+package.install install my-project : : main ;
+explicit test install ;

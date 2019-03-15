@@ -34,5 +34,6 @@ run_test()  {
 run_test minimal
 run_test source_folder
 run_test build_folder
+run_test options
 run_test pre-generated
 run_test misc
