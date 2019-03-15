@@ -37,4 +37,4 @@ run_test build_folder
 run_test options
 run_test properties
 run_test pre-generated
-run_test misc
+run_test default-properties
