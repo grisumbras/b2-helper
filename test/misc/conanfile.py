@@ -18,8 +18,3 @@ class B2ToolTestConan(b2.B2.mixin, ConanFile):
     options = {"shared": [True, False]}
     default_options = {"shared": False}
     exports_sources = "*.cpp", "*.jam"
-
-    def b2_setup_builder(self, builder):
-        builder.properties.threading = "multi"
-
-        return builder

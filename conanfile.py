@@ -555,7 +555,7 @@ class PropertiesProxy(object):
         self.add()
 
     def __getitem__(self, key):
-        if isinstance(self, (numbers.Number, slice)):
+        if isinstance(key, (numbers.Number, slice)):
             return self._property_sets[key]
         return self._property_sets[0][key]
 
