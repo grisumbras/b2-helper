@@ -664,7 +664,7 @@ class B2(object):
     Build helper for Boost.Build build system.
     """
 
-    class mixin(object):
+    class Mixin(object):
         """
         Convenience mixin class that enables building with Boost.Build.
         Just add it to the list of bases for your ConanFile subclass and it
@@ -673,7 +673,7 @@ class B2(object):
         *before* it. Example:
 
             b2 = python_requires(...)
-            class MyConan(b2.B2.mixin, ConanFile):
+            class MyConan(b2.B2.Mixin, ConanFile):
                 name = "..."
                 version = "..."
                 settings = "os", "arch", "compiler", "build_type"

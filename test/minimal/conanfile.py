@@ -12,7 +12,7 @@ from get_helper_package import (
 )
 
 
-class MyConan(b2.B2.mixin, ConanFile):
+class MyConan(b2.B2.Mixin, ConanFile):
     """This is pretty much the bare minimum package definition"""
 
     requires = b2_reference

@@ -12,7 +12,7 @@ from get_helper_package import (
 )
 
 
-class B2ToolTestConan(b2.B2.mixin, ConanFile):
+class B2ToolTestConan(b2.B2.Mixin, ConanFile):
     settings = "os", "compiler", "build_type", "arch", "cppstd",
     build_requires = b2_reference
     options = {"shared": [True, False]}

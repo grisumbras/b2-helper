@@ -31,7 +31,7 @@ The simplest way to use the package is via a mixin class:
 
 [source,python]
 ----
-class MyConan(b2.B2.mixin, ConanFile):
+class MyConan(b2.B2.Mixin, ConanFile):
     name = "..."
     version = "..."
     settings = "os", "arch", "compiler", "build_type"
@@ -45,7 +45,7 @@ required, the `ConanFile` subclass should override method `b2_setup_builder`:
 
 [source,python]
 ----
-class MyConan(b2.B2.mixin, ConanFile):
+class MyConan(b2.B2.Mixin, ConanFile):
     def b2_setup_builder(self, builder):
         builder.source_folder = "src"
         builder.build_folder = "build"
@@ -135,7 +135,7 @@ class MyConan(ConanFile):
 * `options` a collection of CLI options.
 
 
-=== `class B2.mixin`
+=== `class B2.Mixin`
 TBD
 
 === `class OptionsProxy`

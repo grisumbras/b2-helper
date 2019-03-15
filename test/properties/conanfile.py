@@ -15,7 +15,7 @@ from get_helper_package import (
 )
 
 
-class B2ToolTestConan(b2.B2.mixin, ConanFile):
+class B2ToolTestConan(b2.B2.Mixin, ConanFile):
     build_requires = b2_reference
     exports_sources = "*.cpp", "*.jam"
 

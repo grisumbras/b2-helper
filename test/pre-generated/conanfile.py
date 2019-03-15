@@ -15,7 +15,7 @@ from get_helper_package import (
 )
 
 
-class MyConan(b2.B2.mixin, ConanFile):
+class MyConan(b2.B2.Mixin, ConanFile):
     """This package bootstraps its own project-config.jam"""
 
     requires = b2_reference
