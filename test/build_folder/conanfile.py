@@ -13,16 +13,13 @@ from get_helper_package import (
 
 
 class B2ToolTestConan(b2.B2.mixin, ConanFile):
-    settings = "os", "compiler", "build_type", "arch", "cppstd",
     build_requires = b2_reference
-    options = {"shared": [True, False]}
-    default_options = {"shared": False}
     exports_sources = "*.cpp", "*.jam"
 
     def b2_setup_builder(self, builder):
-        builder.options.foo = True
-        builder.options.update(bar="baz")
-
-        builder.properties.threading = "multi"
-
+        builder.build_folder = "build"
         return builder
+
+    def build(self):
+        super(B2ToolTestConan, self).build()
+        assert(os.path.exists(os.path.join(self.build_folder, "build")))
