@@ -374,9 +374,12 @@ class PropertySet(AttrDict):
             return
 
         try:
-            host_os = str(host_os.subsystem)
+            subsystem = host_os.subsystem
+            if subsystem:
+                host_os = subsystem
         except (AttributeError, ConanException):
-            host_os = str(host_os)
+            pass
+        host_os = str(host_os)
 
         host_os = {
             "WindowsStore": "windows",
