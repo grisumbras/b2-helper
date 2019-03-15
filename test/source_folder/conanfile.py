@@ -13,18 +13,9 @@ from get_helper_package import (
 
 
 class B2ToolTestConan(b2.B2.mixin, ConanFile):
-    settings = "os", "compiler", "build_type", "arch", "cppstd",
     build_requires = b2_reference
-    options = {"shared": [True, False]}
-    default_options = {"shared": False}
-    exports_sources = "*.cpp", "*.jam"
+    exports_sources = "src/*"
 
     def b2_setup_builder(self, builder):
-        builder.build_folder = "build"
-
-        builder.options.foo = True
-        builder.options.update(bar="baz")
-
-        builder.properties.threading = "multi"
-
+        builder.source_folder = "src"
         return builder
