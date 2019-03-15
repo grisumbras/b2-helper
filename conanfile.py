@@ -831,6 +831,8 @@ class B2(object):
         if not (targets or self.conanfile.should_build):
             return
         self._build(targets)
+        if self.conanfile.develop:
+            self.test()
 
     def install(self, force=True):
         """
@@ -846,16 +848,12 @@ class B2(object):
     def test(self, force=False):
         """
         Run Boost.Build to build target `test`. Doesn't do anything if
-        `conanfile.should_test` is falsey or if environment variable
-        `CONAN_RUN_TESTS` is defined and is falsey.
+        if environment variable `CONAN_RUN_TESTS` is defined and is falsey.
 
-        :param force: build anyway.
+        :param force: test anyway.
         """
 
-        if force or (
-            tools.get_env("CONAN_RUN_TESTS", True)
-            and self.conanfile.should_test
-        ):
+        if force or tools.get_env("CONAN_RUN_TESTS", True):
             self._build(["test"])
 
     def _build(self, targets):

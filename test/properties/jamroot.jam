@@ -13,4 +13,5 @@ project my-project ;
 exe main1 : main.cpp : <threading>single:<build>no <link>static:<build>no ;
 exe main2 : main.cpp : <threading>multi:<build>no <link>shared:<build>no ;
 package.install install my-project : : main1 main2 ;
-explicit install ;
+alias test ; # empty target
+explicit install test ;
