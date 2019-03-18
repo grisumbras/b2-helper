@@ -831,8 +831,6 @@ class B2(object):
         if not (targets or self.conanfile.should_build):
             return
         self._build(targets)
-        if self.conanfile.develop:
-            self.test()
 
     def install(self, force=True):
         """
