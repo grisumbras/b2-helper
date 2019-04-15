@@ -364,10 +364,10 @@ class PropertySet(AttrDict):
         dict.__delitem__(self, "toolset")
 
     def __str__(self):
-        return "/".join((self._stringify(k, v) for (k, v) in self.items()))
+        return " ".join((self._stringify(k, v) for (k, v) in self.items()))
 
     def _stringify(self, option, value):
-        return "{option}={value}".format(option=option, value=value)
+        return "<{option}>{value}".format(option=option, value=value)
 
     def _init_os(self, host_os):
         if not tools.cross_building(self._b2.conanfile.settings):
@@ -811,14 +811,36 @@ class B2(object):
         path = os.path.relpath(
             self.conanfile.install_folder, self.source_folder
         )
-        tools.save(
-            self.project_config,
-            _project_config_template.format(
-                install_folder=path,
-                toolset_init=self.using.dumps(),
-                include=self._dump_includes(),
+        with open(self.project_config, "w") as file:
+            file.write("use-packages \"")
+            file.write(path)
+            file.write("/conanbuildinfo.jam\" ;\n")
+
+            file.write(self.using.dumps())
+            file.write("\n")
+
+            for include in self.include:
+                file.write("include \"")
+                file.write(include)
+                file.write("\" ;\n")
+
+            file.write(
+                "import option ;\n"
+                "local selected-properties\n"
+                "  = [ option.get "
             )
-        )
+            file.write(_selected_properties_variable)
+            file.write(" ] ;\n")
+
+            for i, ps in enumerate(self.properties):
+                file.write("local ps")
+                file.write(str(i))
+                file.write(" = ")
+                file.write(str(ps))
+                file.write(" ;\n")
+            file.write(
+                "project : requirements $(ps$(selected-properties)) ;\n"
+            )
 
     def build(self, *targets):
         """
@@ -855,28 +877,19 @@ class B2(object):
             self._build(["test"])
 
     def _build(self, targets):
-        special_options = (
+        args = [self.executable]
+        args += [
+            "",
             "--project-config=" + self.project_config,
             "--build-dir=" + self.build_folder,
-        )
-        args = itertools.chain(
-            [self.executable],
-            special_options,
-            self.options.strings(),
-            (str(ps) for ps in self.properties),
-            targets,
-        )
+        ]
+        args += self.options.strings()
+        args += targets
+
         with tools.chdir(self.source_folder):
-            self.conanfile.run(join_arguments(args))
-
-    def _dump_includes(self):
-        return "\n".join((
-            ('include "%s" ;' % file) for file in self.include
-        ))
+            for i, _ in enumerate(self.properties):
+                args[1] = "--" + _selected_properties_variable + "=" + str(i)
+                self.conanfile.run(join_arguments(args))
 
 
-_project_config_template = '''\
-use-packages "{install_folder}/conanbuildinfo.jam" ;
-{toolset_init}
-{include}
-'''
+_selected_properties_variable = "conan-selected-properties";
