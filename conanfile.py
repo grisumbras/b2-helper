@@ -363,11 +363,15 @@ class PropertySet(AttrDict):
     def toolset(self):
         dict.__delitem__(self, "toolset")
 
-    def __str__(self):
-        return " ".join((self._stringify(k, v) for (k, v) in self.items()))
-
-    def _stringify(self, option, value):
-        return "<{option}>{value}".format(option=option, value=value)
+    def flattened(self):
+        for key, value in self.items():
+            if (not isinstance(value, six.string_types)
+                and isinstance(value, collections.Iterable)
+            ):
+                for subvalue in value:
+                    yield (key, str(subvalue))
+            else:
+                yield (key, str(value))
 
     def _init_os(self, host_os):
         if not tools.cross_building(self._b2.conanfile.settings):
@@ -819,18 +823,19 @@ class B2(object):
                 file.write("include \"%s\" ;\n" % include)
 
             file.write(
-                "import option ;\n"
-                "local selected-properties\n"
+                "import feature ;\n"
+                "feature.feature conan-ps-request :"
             )
+            for i, _ in enumerate(self.properties):
+                file.write(" ps%d" % i)
             file.write(
-                "  = [ option.get %s ] ;\n" % _selected_properties_variable
+                " : optional ;\n"
+                "project : requirements\n"
             )
-
-            for ps in enumerate(self.properties):
-                file.write("local ps%d = %s ;\n" % ps)
-            file.write(
-                "project : requirements $(ps$(selected-properties)) ;\n"
-            )
+            for i, ps in enumerate(self.properties):
+                for k, v in ps.flattened():
+                    file.write("  <conan-ps-request>ps%d:<%s>%s\n" % (i, k, v))
+            file.write("  ;\n")
 
     def build(self, *targets):
         """
@@ -867,19 +872,24 @@ class B2(object):
             self._build(["test"])
 
     def _build(self, targets):
-        args = [self.executable]
-        args += [
-            "",
+        special_options = (
             "--project-config=" + self.project_config,
             "--build-dir=" + self.build_folder,
-        ]
-        args += self.options.strings()
-        args += targets
+        )
+
+        props = "conan-ps-request=" + ",".join((
+            ("ps%d" % i) for i, _ in enumerate(self.properties)
+        ))
+
+        args = itertools.chain(
+            [self.executable, props],
+            targets,
+            special_options,
+            self.options.strings(),
+        )
 
         with tools.chdir(self.source_folder):
-            for i, _ in enumerate(self.properties):
-                args[1] = "--" + _selected_properties_variable + "=" + str(i)
-                self.conanfile.run(join_arguments(args))
+            self.conanfile.run(join_arguments(args))
 
 
 _selected_properties_variable = "conan-selected-properties";
