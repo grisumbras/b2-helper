@@ -620,7 +620,7 @@ class ToolsetModulesProxy(dict):
 
         self[name] = (args, kw)
 
-    def dumps(self):
+    def tuples(self):
         """
         Dumps all toolset module configuraions into a multiline string usable
         as a part of Boost.Build configuration file.
@@ -629,7 +629,6 @@ class ToolsetModulesProxy(dict):
         the line `using a : b : c : d : <e>"f" ;`
         """
 
-        contents = ""
         for k, v in self.items():
             if isinstance(k, tuple):
                 items = list(k)
@@ -642,8 +641,7 @@ class ToolsetModulesProxy(dict):
                     for k, v in v[1].items()
                 )
                 items.append(" ".join(opts))
-            contents += "using %s ;\n" % " : ".join(items)
-        return contents
+            yield items
 
     def _dump_param(self, param, value):
         param = jamify(param)
@@ -812,32 +810,24 @@ class B2(object):
             self.conanfile.install_folder, self.source_folder
         )
         with open(self.project_config, "w") as file:
-            file.write("use-packages \"")
-            file.write(path)
-            file.write("/conanbuildinfo.jam\" ;\n")
+            file.write("use-packages \"%s/conanbuildinfo.jam\" ;\n" % path)
 
-            file.write(self.using.dumps())
-            file.write("\n")
+            for module in self.using.tuples():
+                file.write("using %s ;\n" % " : ".join(module))
 
             for include in self.include:
-                file.write("include \"")
-                file.write(include)
-                file.write("\" ;\n")
+                file.write("include \"%s\" ;\n" % include)
 
             file.write(
                 "import option ;\n"
                 "local selected-properties\n"
-                "  = [ option.get "
             )
-            file.write(_selected_properties_variable)
-            file.write(" ] ;\n")
+            file.write(
+                "  = [ option.get %s ] ;\n" % _selected_properties_variable
+            )
 
-            for i, ps in enumerate(self.properties):
-                file.write("local ps")
-                file.write(str(i))
-                file.write(" = ")
-                file.write(str(ps))
-                file.write(" ;\n")
+            for ps in enumerate(self.properties):
+                file.write("local ps%d = %s ;\n" % ps)
             file.write(
                 "project : requirements $(ps$(selected-properties)) ;\n"
             )
