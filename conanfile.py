@@ -829,7 +829,7 @@ class B2(object):
             for i, _ in enumerate(self.properties):
                 file.write(" ps%d" % i)
             file.write(
-                " : optional ;\n"
+                " : optional propagated ;\n"
                 "project : requirements\n"
             )
             for i, ps in enumerate(self.properties):
