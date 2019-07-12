@@ -9,7 +9,6 @@ from conans import (
     tools,
 )
 from conans.errors import ConanException
-from conans.client import join_arguments
 from conans.util.files import mkdir
 import collections
 import functools
@@ -30,6 +29,10 @@ class B2ToolConan(ConanFile):
 
     def package_info(self):
         self.info.header_only()
+
+
+def join_arguments(args):
+    return " ".join(filter(None, args))
 
 
 def jamify(s):
@@ -504,6 +507,9 @@ class PropertySet(AttrDict):
             init.append(params)
 
         self["toolset"] = init
+
+        if self._b2.conanfile.settings.get_safe("compiler.cppstd") is not None:
+            self._init_cppstd(self._b2.conanfile.settings.compiler.cppstd)
 
     def _init_build_type(self, value):
         self["variant"] = str(value).lower()
