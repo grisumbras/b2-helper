@@ -896,6 +896,3 @@ class B2(object):
 
         with tools.chdir(self.source_folder):
             self.conanfile.run(join_arguments(args))
-
-
-_selected_properties_variable = "conan-selected-properties";
