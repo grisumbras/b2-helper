@@ -667,12 +667,67 @@ class ToolsetModulesProxy(dict):
             return pattern.format(param=param, value=str(value))
 
 
+class _BaseMixin(object):
+    def __init__(self, *args, **kw):
+        """
+        Constructor. Adds `b2` generator if it wasn't present already.
+        """
+
+        super().__init__(*args, **kw)
+
+        if not hasattr(self, "generators"):
+            self.generators = ("b2",)
+        elif "b2" not in self.generators:
+            generators = self.generators
+            if isinstance(generators, six.string_types):
+                generators = [generators]
+            else:
+                generators = list(generators)
+            generators.append("b2")
+            self.generators = tuple(generators)
+
+    def b2_setup_builder(self, builder):
+        """
+        If you want to customize the build helper, you need to override
+        this method. It should return an instance of `B2` class.
+
+        :param builder: an instance of `B2` class.
+        """
+
+        return builder
+
+
+class _BuildMixin(object):
+    def build(self):
+        """Configures and builds default targets."""
+
+        builder = self.b2_setup_builder(B2(self))
+        builder.configure()
+        builder.build()
+
+
+class _PackageMixin(object):
+    def package(self):
+        """Builds target `install`."""
+
+        builder = self.b2_setup_builder(B2(self))
+        builder.install()
+
+
+class _TestMixin(object):
+    def test(self):
+        """Builds target `test`."""
+
+        builder = self.b2_setup_builder(B2(self))
+        builder.test()
+
+
 class B2(object):
     """
     Build helper for Boost.Build build system.
     """
 
-    class Mixin(object):
+    class Mixin(_BaseMixin, _BuildMixin, _PackageMixin, _TestMixin):
         """
         Convenience mixin class that enables building with Boost.Build.
         Just add it to the list of bases for your ConanFile subclass and it
@@ -688,51 +743,6 @@ class B2(object):
 
         And that's it.
         """
-
-        def __init__(self, *args, **kw):
-            """
-            Constructor. Adds `b2` generator if it wasn't present already.
-            """
-
-            super().__init__(*args, **kw)
-
-            if not hasattr(self, "generators"):
-                self.generators = ("b2",)
-            elif "b2" not in self.generators:
-                generators = self.generators
-                if isinstance(generators, six.string_types):
-                    generators = [generators]
-                else:
-                    generators = list(generators)
-                generators.append("b2")
-                self.generators = tuple(generators)
-
-        def b2_setup_builder(self, builder):
-            """
-            If you want to customize the build helper, you need to override
-            this method. It should return an instance of `B2` class.
-
-            :param builder: an instance of `B2` class.
-            """
-
-            return builder
-
-        def build(self):
-            """Configures and builds default targets."""
-
-            builder = self.b2_setup_builder(B2(self))
-            builder.configure()
-            builder.build()
-
-        def package(self):
-            """Builds target `install`."""
-            builder = self.b2_setup_builder(B2(self))
-            builder.install()
-
-        def test(self):
-            """Builds target `test`."""
-            builder = self.b2_setup_builder(B2(self))
-            builder.test()
 
     def __init__(self, conanfile, no_defaults=False):
         """
@@ -896,61 +906,6 @@ class B2(object):
 
         with tools.chdir(self.source_folder):
             self.conanfile.run(join_arguments(args))
-
-
-class _BaseMixin(object):
-    def __init__(self, *args, **kw):
-        """
-        Constructor. Adds `b2` generator if it wasn't present already.
-        """
-
-        super().__init__(*args, **kw)
-
-        if not hasattr(self, "generators"):
-            self.generators = ("b2",)
-        elif "b2" not in self.generators:
-            generators = self.generators
-            if isinstance(generators, six.string_types):
-                generators = [generators]
-            else:
-                generators = list(generators)
-            generators.append("b2")
-            self.generators = tuple(generators)
-
-    def b2_setup_builder(self, builder):
-        """
-        If you want to customize the build helper, you need to override
-        this method. It should return an instance of `B2` class.
-
-        :param builder: an instance of `B2` class.
-        """
-
-        return builder
-
-
-class _BuildMixin(object):
-    def build(self):
-        """Configures and builds default targets."""
-
-        builder = self.b2_setup_builder(B2(self))
-        builder.configure()
-        builder.build()
-
-
-class _PackageMixin(object):
-    def package(self):
-        """Builds target `install`."""
-
-        builder = self.b2_setup_builder(B2(self))
-        builder.install()
-
-
-class _TestMixin(object):
-    def test(self):
-        """Builds target `test`."""
-
-        builder = self.b2_setup_builder(B2(self))
-        builder.test()
 
 
 def build_with_b2(wrapped):
