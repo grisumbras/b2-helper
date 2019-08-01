@@ -1,0 +1,16 @@
+# Copyright (c) 2019 Dmitry Arkhipov <grisumbras@gmail.com>
+#
+# Distributed under the Boost Software License, Version 1.0. (See accompanying
+# file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+
+import package ;
+
+project my-project ;
+
+exe main1 : main.cpp ;
+exe main2 : main.cpp ;
+
+package.install install1 my-project : : main1 ;
+package.install install2 my-project : : main2 ;
+explicit main1 main2 install1 install2 ;

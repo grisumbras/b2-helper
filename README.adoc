@@ -56,6 +56,21 @@ class MyConan(ConanFile):
         return builder
 ----
 
+If you need to build specific targets, you can sepcify them via
+`b2_build_targets`. The value of the variable can be any collection or string
+(in case you want to only build one target):
+
+[source,python]
+----
+@b2.build_with_b2
+class MyConan1(ConanFile):
+  b2_build_targets = "foo"
+
+@b2.build_with_b2
+class MyConan2(ConanFile):
+  b2_build_targets = "foo", "bar"
+----
+
 === Using mixin
 
 Another convenient way to use the package is via a mixin class:

@@ -703,7 +703,11 @@ class _BuildMixin(object):
 
         builder = self.b2_setup_builder(B2(self))
         builder.configure()
-        builder.build()
+
+        targets = getattr(self, "b2_build_targets", [])
+        if isinstance(targets, six.string_types):
+            targets = [targets]
+        builder.build(*targets)
 
 
 class _PackageMixin(object):
