@@ -896,3 +896,88 @@ class B2(object):
 
         with tools.chdir(self.source_folder):
             self.conanfile.run(join_arguments(args))
+
+
+class _BaseMixin(object):
+    def __init__(self, *args, **kw):
+        """
+        Constructor. Adds `b2` generator if it wasn't present already.
+        """
+
+        super().__init__(*args, **kw)
+
+        if not hasattr(self, "generators"):
+            self.generators = ("b2",)
+        elif "b2" not in self.generators:
+            generators = self.generators
+            if isinstance(generators, six.string_types):
+                generators = [generators]
+            else:
+                generators = list(generators)
+            generators.append("b2")
+            self.generators = tuple(generators)
+
+    def b2_setup_builder(self, builder):
+        """
+        If you want to customize the build helper, you need to override
+        this method. It should return an instance of `B2` class.
+
+        :param builder: an instance of `B2` class.
+        """
+
+        return builder
+
+
+class _BuildMixin(object):
+    def build(self):
+        """Configures and builds default targets."""
+
+        builder = self.b2_setup_builder(B2(self))
+        builder.configure()
+        builder.build()
+
+
+class _PackageMixin(object):
+    def package(self):
+        """Builds target `install`."""
+
+        builder = self.b2_setup_builder(B2(self))
+        builder.install()
+
+
+class _TestMixin(object):
+    def test(self):
+        """Builds target `test`."""
+
+        builder = self.b2_setup_builder(B2(self))
+        builder.test()
+
+
+def build_with_b2(wrapped):
+    """
+    Class decorator that enables building with Boost.Build. Decorate your
+    ConanFile subclass with it, and if you haven't defined any of the methods
+    `build`, `package` and `test` the decorator will do it for you. Example:
+
+        b2 = python_requires(...)
+        @b2.build_with_b2
+        class MyConan(ConanFile):
+            name = "..."
+            version = "..."
+            settings = "os", "arch", "compiler", "build_type"
+
+    And that's it.
+    """
+
+    mixins = [_BaseMixin]
+    if (wrapped.build == ConanFile.build):
+        mixins.append(_BuildMixin)
+    if (wrapped.package == ConanFile.package):
+        mixins.append(_PackageMixin)
+    if (wrapped.test == ConanFile.test):
+        mixins.append(_TestMixin)
+
+    class BuiltWithB2(*mixins, wrapped):
+        __module__ = wrapped.__module__
+
+    return BuiltWithB2

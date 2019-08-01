@@ -16,6 +16,7 @@ class TestB2Helper(ConanFile):
         "default-properties",
         "free",
         "propagate-subdir",
+        "decorator",
     )
     _intall_cmd = "conan install %s -if tmp/conan"
     _source_cmd = "conan source %s -if tmp/conan -sf tmp/src"
