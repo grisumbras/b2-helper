@@ -25,9 +25,40 @@ b2 = python_requires("b2-helper/[>=0.1]@grisumbras/testing")
 
 == Usage
 
+=== Using decorator
+
+The simplest way to use the package is via the class decorator
+
+[source,python]
+----
+@b2.build_with_b2
+class MyConan(ConanFile):
+    name = "..."
+    version = "..."
+    settings = "os", "arch", "compiler", "build_type"
+----
+
+The decorator provides default implementations for methods `build`, `package`
+and `test`. In order for it to work without any customization, project's
+jamroot file should be in `conanfile.source_folder` and the project should
+require no configuration beyond toolset initialization. If customization is
+required, the `ConanFile` subclass should override method `b2_setup_builder`:
+
+[source,python]
+----
+@b2.build_with_b2
+class MyConan(ConanFile):
+    def b2_setup_builder(self, builder):
+        builder.source_folder = "src"
+        builder.build_folder = "build"
+        builder.options.debug_building = True
+        builder.properties.runtime_link = "static"
+        return builder
+----
+
 === Using mixin
 
-The simplest way to use the package is via a mixin class:
+Another convenient way to use the package is via a mixin class:
 
 [source,python]
 ----
@@ -37,22 +68,7 @@ class MyConan(b2.B2.Mixin, ConanFile):
     settings = "os", "arch", "compiler", "build_type"
 ----
 
-The mixin provides default implementations for methods `build`, `package` and
-`test`. In order for the mixin to work without any customization, project's
-jamroot file should be in `conanfile.source_folder` and the project should
-require no configuration beyond toolset initialization. If customization is
-required, the `ConanFile` subclass should override method `b2_setup_builder`:
-
-[source,python]
-----
-class MyConan(b2.B2.Mixin, ConanFile):
-    def b2_setup_builder(self, builder):
-        builder.source_folder = "src"
-        builder.build_folder = "build"
-        builder.options.debug_building = True
-        builder.properties.runtime_link = "static"
-        return builder
-----
+Using mixin is mostly equivalent to using the class decorator.
 
 === Using helper
 
