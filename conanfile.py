@@ -20,7 +20,7 @@ import six
 
 class B2ToolConan(ConanFile):
     name = "b2-helper"
-    version = "0.4.0"
+    version = "0.5.0"
     description = "conan helper for projects built with b2"
     url = "http://github.com/grisumbras/b2-tools"
     homepage = url
@@ -29,6 +29,9 @@ class B2ToolConan(ConanFile):
 
     def package_info(self):
         self.info.header_only()
+
+
+b2_reference = "boost_build/[>=4.0.0]@bincrafters/testing"
 
 
 def join_arguments(args):
@@ -912,7 +915,7 @@ class B2(object):
             self.conanfile.run(join_arguments(args))
 
 
-def build_with_b2(wrapped):
+def build_with_b2(wrapped=None, build_require_b2=True):
     """
     Class decorator that enables building with Boost.Build. Decorate your
     ConanFile subclass with it, and if you haven't defined any of the methods
@@ -928,15 +931,52 @@ def build_with_b2(wrapped):
     And that's it.
     """
 
+    def helper(wrapped):
+        return build_decorator(wrapped, build_require_b2)
+
+    return helper(wrapped) if wrapped is not None else helper
+
+
+def build_decorator(wrapped, build_require_b2):
     mixins = [_BaseMixin]
-    if (wrapped.build == ConanFile.build):
+
+    build_require_mixin = get_build_require_mixin(
+        build_require_b2,
+        getattr(wrapped, "build_requirements", None) is not None,
+    )
+
+    if build_require_mixin is not None:
+        mixins.append(build_require_mixin)
+    if wrapped.build == ConanFile.build:
         mixins.append(_BuildMixin)
-    if (wrapped.package == ConanFile.package):
+    if wrapped.package == ConanFile.package:
         mixins.append(_PackageMixin)
-    if (wrapped.test == ConanFile.test):
+    if wrapped.test == ConanFile.test:
         mixins.append(_TestMixin)
 
     class BuiltWithB2(*mixins, wrapped):
         __module__ = wrapped.__module__
 
     return BuiltWithB2
+
+
+def get_build_require_mixin(do_require, has_build_require):
+    if not do_require:
+        return
+
+    if isinstance(do_require, six.string_types):
+        reference = do_require
+    else:
+        reference = b2_reference
+
+    class _BuildRequireMixin(object):
+        def build_requirements(self):
+            """Adds build requirement on b2 in development mode."""
+
+            if self.develop:
+                self.build_requires(reference)
+
+            if has_build_require:
+                super(_BuildRequireMixin, self).build_requirements()
+
+    return _BuildRequireMixin

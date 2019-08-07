@@ -8,6 +8,9 @@ import os
 class TestB2Helper(ConanFile):
     _tests = (
         "minimal",
+        "explicit_require_b2",
+        "custom_build_requires",
+        "custom_b2_reference",
         "source_folder",
         "build_folder",
         "options",

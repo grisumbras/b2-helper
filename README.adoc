@@ -71,6 +71,27 @@ class MyConan2(ConanFile):
   b2_build_targets = "foo", "bar"
 ----
 
+By default the decorator adds a build requirement on Boost.Build
+_in development mode_. If you wish to disable that set its keyword argument
+`build_require_b2` to `False`:
+
+[source,python]
+----
+@b2.build_with_b2(build_require_b2=False)
+class MyConan(ConanFile):
+    ...
+----
+
+Alternatively, if you want to use a specific version of Boost.Build, set that
+keyword argument to a conan reference:
+
+[source,python]
+----
+@b2.build_with_b2(build_require_b2="boost_build/4.0.0@mycompany/stable)
+class MyConan(ConanFile):
+    ...
+----
+
 === Using mixin
 
 Another convenient way to use the package is via a mixin class:

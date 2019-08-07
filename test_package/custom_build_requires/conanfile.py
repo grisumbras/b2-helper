@@ -6,10 +6,19 @@
 
 from conans import ConanFile
 from get_helper_package import b2
+import os
 
 
 @b2.build_with_b2
 class MyConan(ConanFile):
-    """This is pretty much the bare minimum package definition"""
+    exports_sources = "jamroot*", "*.cpp"
 
-    exports_sources = "*.jam", "*.cpp"
+    def build_requirements(self):
+        f = open("marker", "w")
+        f.close()
+
+    def build(self):
+        assert(os.path.exists(os.path.join("..", "..", "marker")))
+
+    def package(self):
+        pass
