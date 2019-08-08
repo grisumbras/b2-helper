@@ -4,16 +4,13 @@
 # file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-import os
 from conans import ConanFile
-from get_helper_package import (
-    b2,
-    b2_reference,
-)
+from get_helper_package import b2
+import os
 
 
-class B2ToolTestConan(b2.B2.Mixin, ConanFile):
-    build_requires = b2_reference
+@b2.build_with_b2
+class B2ToolTestConan(ConanFile):
     exports_sources = "*.cpp", "*.jam"
 
     def b2_setup_builder(self, builder):

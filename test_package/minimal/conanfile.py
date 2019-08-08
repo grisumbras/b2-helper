@@ -4,16 +4,12 @@
 # file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-import os
 from conans import ConanFile
-from get_helper_package import (
-    b2,
-    b2_reference,
-)
+from get_helper_package import b2
 
 
-class MyConan(b2.B2.Mixin, ConanFile):
+b2.build_with_b2
+class MyConan(ConanFile):
     """This is pretty much the bare minimum package definition"""
 
-    requires = b2_reference
     exports_sources = "*.jam", "*.cpp"

@@ -670,7 +670,23 @@ class ToolsetModulesProxy(dict):
             return pattern.format(param=param, value=str(value))
 
 
-class _BaseMixin(object):
+class Mixin(object):
+    """
+    Convenience mixin class that enables building with Boost.Build.
+    Just add it to the list of bases for your ConanFile subclass and it
+    will override methods `build`, `package` and `test`. Note, since
+    `ConanFile` class declares those methods, you need to put this mixin
+    *before* it. Example:
+
+        b2 = python_requires(...)
+        class MyConan(b2.Mixin, ConanFile):
+            name = "..."
+            version = "..."
+            settings = "os", "arch", "compiler", "build_type"
+
+    And that's it.
+    """
+
     def __init__(self, *args, **kw):
         """
         Constructor. Adds `b2` generator if it wasn't present already.
@@ -699,8 +715,12 @@ class _BaseMixin(object):
 
         return builder
 
+    def build_requirements(self):
+        """Adds build requirement on b2 in development mode."""
 
-class _BuildMixin(object):
+        if getattr(self, "_b2_reference", None) and self.develop:
+            self.build_requires(self._b2_reference)
+
     def build(self):
         """Configures and builds default targets."""
 
@@ -712,16 +732,12 @@ class _BuildMixin(object):
             targets = [targets]
         builder.build(*targets)
 
-
-class _PackageMixin(object):
     def package(self):
         """Builds target `install`."""
 
         builder = self.b2_setup_builder(B2(self))
         builder.install()
 
-
-class _TestMixin(object):
     def test(self):
         """Builds target `test`."""
 
@@ -733,23 +749,6 @@ class B2(object):
     """
     Build helper for Boost.Build build system.
     """
-
-    class Mixin(_BaseMixin, _BuildMixin, _PackageMixin, _TestMixin):
-        """
-        Convenience mixin class that enables building with Boost.Build.
-        Just add it to the list of bases for your ConanFile subclass and it
-        will override methods `build`, `package` and `test`. Note, since
-        `ConanFile` class declares those methods, you need to put this mixin
-        *before* it. Example:
-
-            b2 = python_requires(...)
-            class MyConan(b2.B2.Mixin, ConanFile):
-                name = "..."
-                version = "..."
-                settings = "os", "arch", "compiler", "build_type"
-
-        And that's it.
-        """
 
     def __init__(self, conanfile, no_defaults=False):
         """
@@ -916,67 +915,45 @@ class B2(object):
 
 
 def build_with_b2(wrapped=None, build_require_b2=True):
-    """
-    Class decorator that enables building with Boost.Build. Decorate your
-    ConanFile subclass with it, and if you haven't defined any of the methods
-    `build`, `package` and `test` the decorator will do it for you. Example:
-
-        b2 = python_requires(...)
-        @b2.build_with_b2
-        class MyConan(ConanFile):
-            name = "..."
-            version = "..."
-            settings = "os", "arch", "compiler", "build_type"
-
-    And that's it.
-    """
-
     def helper(wrapped):
-        return build_decorator(wrapped, build_require_b2)
+        meta = metaclass(build_require_b2)
+        return six.add_metaclass(meta)(wrapped)
 
-    return helper(wrapped) if wrapped is not None else helper
-
-
-def build_decorator(wrapped, build_require_b2):
-    mixins = [_BaseMixin]
-
-    build_require_mixin = get_build_require_mixin(
-        build_require_b2,
-        getattr(wrapped, "build_requirements", None) is not None,
-    )
-
-    if build_require_mixin is not None:
-        mixins.append(build_require_mixin)
-    if wrapped.build == ConanFile.build:
-        mixins.append(_BuildMixin)
-    if wrapped.package == ConanFile.package:
-        mixins.append(_PackageMixin)
-    if wrapped.test == ConanFile.test:
-        mixins.append(_TestMixin)
-
-    class BuiltWithB2(*mixins, wrapped):
-        __module__ = wrapped.__module__
-
-    return BuiltWithB2
-
-
-def get_build_require_mixin(do_require, has_build_require):
-    if not do_require:
-        return
-
-    if isinstance(do_require, six.string_types):
-        reference = do_require
+    if wrapped is None:
+        return helper
     else:
-        reference = b2_reference
+        return helper(wrapped)
 
-    class _BuildRequireMixin(object):
-        def build_requirements(self):
-            """Adds build requirement on b2 in development mode."""
 
-            if self.develop:
-                self.build_requires(reference)
+def metaclass(build_require_b2=True):
+    if build_require_b2 and not isinstance(build_require_b2, six.string_types):
+        return _Meta
+    else:
+        class _MetaWithCustomRef(_Meta):
+            reference = build_require_b2
+        return _MetaWithCustomRef
 
-            if has_build_require:
-                super(_BuildRequireMixin, self).build_requirements()
 
-    return _BuildRequireMixin
+def _subclass_index(lst, cls):
+    index = [i for (i, base) in enumerate(lst) if issubclass(base, cls)]
+    if index:
+        return index[0]
+    else:
+        return -1
+
+
+class _Meta(type):
+    reference = b2_reference
+
+    def __new__(cls, name, bases, namespace):
+        mixin_index = _subclass_index(bases, Mixin)
+        if mixin_index < 0:
+            cf_index = _subclass_index(bases, ConanFile)
+            if cf_index > -1:
+                bases = list(bases)
+                bases.insert(cf_index, Mixin)
+                bases = tuple(bases)
+
+        namespace["_b2_reference"] = cls.reference
+
+        return type.__new__(cls, name, bases, namespace)

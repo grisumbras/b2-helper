@@ -4,21 +4,15 @@
 # file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
+from conans import ConanFile
+from get_helper_package import b2
 import os
-from conans import (
-    ConanFile,
-    tools,
-)
-from get_helper_package import (
-    b2,
-    b2_reference,
-)
 
 
-class MyConan(b2.B2.Mixin, ConanFile):
+@b2.build_with_b2
+class MyConan(ConanFile):
     """This package bootstraps its own project-config.jam"""
 
-    requires = b2_reference
     exports_sources = "*.sh", "*.jam", "*.cpp"
 
     def b2_setup_builder(self, builder):

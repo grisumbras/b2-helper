@@ -98,13 +98,15 @@ Another convenient way to use the package is via a mixin class:
 
 [source,python]
 ----
-class MyConan(b2.B2.Mixin, ConanFile):
+class MyConan(b2.Mixin, ConanFile):
     name = "..."
     version = "..."
     settings = "os", "arch", "compiler", "build_type"
 ----
 
-Using mixin is mostly equivalent to using the class decorator.
+Using mixin is equivalent to using the class decorator. Note, that since
+`ConanFile` class defines methods `build`, `package` and so on, it is important
+to put the mixin before it in the base class list.
 
 === Using helper
 

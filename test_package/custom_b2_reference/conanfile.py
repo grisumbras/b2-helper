@@ -11,6 +11,7 @@ from get_helper_package import b2
 @b2.build_with_b2(build_require_b2="boost_build/1.69.0@bincrafters/stable")
 class MyConan(ConanFile):
     def build_requirements(self):
+        super(MyConan, self).build_requirements()
         b2_ref = str(self.build_requires["boost_build"])
         assert(b2_ref == "boost_build/1.69.0@bincrafters/stable")
 
