@@ -1,8 +1,11 @@
 = b2-helper
 :toc: preamble
 
-[link=https://bintray.com/grisumbras/conan/b2-helper%3Agrisumbras/_latestVersion)]
+[link=https://bintray.com/grisumbras/conan/b2-helper%3Agrisumbras/_latestVersion]
 image::https://api.bintray.com/packages/grisumbras/conan/b2-helper%3Agrisumbras/images/download.svg[Download]
+
+[link=https://github.com/grisumbras/b2-helper/actions]
+image::https://github.com/grisumbras/b2-helper/workflows/ci/badge.svg[Build status]
 
 ____
 https://conan.io[Conan] buid helper for projects that use
@@ -212,4 +215,4 @@ Dmitry Arkhipov <grisumbras@gmail.com>
 Patches welcome!
 
 == License
-link:LICENSE[BSL-1.0] (C) 2018-2019 Dmitry Arkhipov
+link:LICENSE[BSL-1.0] (C) 2018 Dmitry Arkhipov
