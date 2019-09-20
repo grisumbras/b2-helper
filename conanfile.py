@@ -836,12 +836,17 @@ class B2(object):
             self.conanfile.install_folder, self.source_folder
         )
         with open(self.project_config, "w") as file:
-            file.write("use-packages \"%s/conanbuildinfo.jam\" ;\n" % path)
+            file.write("import path ;\n")
+
+            build_info = path_escaped(os.path.join(path, "conanbuildinfo.jam"))
+
+            file.write("use-packages [ path.make \"%s\" ] ;\n" % build_info)
 
             for module in self.using.tuples():
                 file.write("using %s ;\n" % " : ".join(module))
 
             for include in self.include:
+                include = path_escaped(include)
                 file.write("include \"%s\" ;\n" % include)
 
             file.write(
@@ -856,6 +861,7 @@ class B2(object):
             )
             for i, ps in enumerate(self.properties):
                 for k, v in ps.flattened():
+                    v = path_escaped(v)
                     file.write("  <conan-ps-request>ps%d:<%s>%s\n" % (i, k, v))
             file.write("  ;\n")
 
@@ -957,3 +963,9 @@ class _Meta(type):
         namespace["_b2_reference"] = cls.reference
 
         return type.__new__(cls, name, bases, namespace)
+
+
+def path_escaped(path):
+    if os.sep == "\\":
+        path  = path.replace("\\", "\\\\")
+    return path
