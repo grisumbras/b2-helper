@@ -22,7 +22,7 @@ class B2ToolConan(ConanFile):
     name = "b2-helper"
     version = "0.5.0"
     description = "conan helper for projects built with b2"
-    url = "http://github.com/grisumbras/b2-tools"
+    url = "http://github.com/grisumbras/b2-helper"
     homepage = url
     license = "BSL-1.0"
     exports = "LICENSE*"
