@@ -24,12 +24,6 @@ jobs:
           python-version: 3.7
 
       - name: Run CPT
-        run: |
-          python -m pip install --upgrade pip
-          pip install conan_package_tools
-          python build.py
+        uses: grisumbras/run-cpt@v0.1.0
         env:
-          CONAN_USERNAME: grisumbras
-          CONAN_CHANNEL: testing
           CONAN_REMOTES: https://api.bintray.com/conan/bincrafters/public-conan
-          CONAN_PRINT_RUN_COMMANDS: 1
