@@ -31,7 +31,7 @@ class B2ToolConan(ConanFile):
         self.info.header_only()
 
 
-b2_reference = "boost_build/[>=4.0.0]@bincrafters/testing"
+b2_reference = "b2/[>=4.0.0]"
 
 
 def join_arguments(args):
