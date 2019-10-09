@@ -10,4 +10,3 @@ from conans import python_requires
 
 package_ref = os.environ.get("PACKAGE_REFERENCE")
 b2 = python_requires(package_ref)
-b2_reference = "boost_build/1.69.0@bincrafters/stable"
