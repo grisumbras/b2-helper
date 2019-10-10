@@ -4,9 +4,6 @@ on:
   push:
     branches:
       - '*'
-      - '!wip/*'
-    tags:
-      - '*'
 
 jobs:
   build:
@@ -32,14 +29,12 @@ jobs:
         uses: grisumbras/run-cpt@v0.1.1
         env:
           CONAN_REMOTES: https://api.bintray.com/conan/bincrafters/public-conan
-          CONAN_STABLE_BRANCH_PATTERN: '\d+\.\d+(\.\d+[-\w\.]*)?'
+          CONAN_STABLE_BRANCH_PATTERN: '---'
 
       - name: Locate package folder
         if: matrix.os == 'ubuntu-latest'
         id: locate_package
         uses: grisumbras/locate-conan-package@v0.1.0
-        env:
-          CONAN_STABLE_BRANCH_PATTERN: '\d+\.\d+(\.\d+[-\w\.]*)?'
 
       - name: Upload package artifacts
         if: matrix.os == 'ubuntu-latest'
@@ -53,7 +48,7 @@ jobs:
 
     needs: build
 
-    if: github.event.ref == 'refs/heads/master' || startsWith(github.event.ref, 'refs/tags/')
+    # if: github.event.ref == 'refs/heads/master' || startsWith(github.event.ref, 'refs/tags/')
 
     steps:
       - name: Pull sources
@@ -76,13 +71,14 @@ jobs:
         uses: grisumbras/conan-export-subdirs@v0.1.0
         with:
           path: artifacts
-        env:
-          CONAN_STABLE_BRANCH_PATTERN: '\d+\.\d+(\.\d+[-\w\.]*)?'
 
-      - name: Upload packages
-        uses: grisumbras/conan-upload@v0.1.0
-        with:
-          password: ${{ secrets.CONAN_PASSWORD }}
-          url: https://api.bintray.com/conan/grisumbras/conan
-        env:
-          CONAN_STABLE_BRANCH_PATTERN: '\d+\.\d+(\.\d+[-\w\.]*)?'
+      - name: Promote from testing to stable
+        # if: startsWith(github.event.ref, 'refs/tags/')
+        run: conan copy --all b2-helper/0.6.0@grisumbras/testing grisumbras/stable
+
+      # - name: Upload packages
+      #   uses: grisumbras/conan-upload@v0.1.0
+      #   with:
+      #     password: ${{ secrets.CONAN_PASSWORD }}
+      #     url: https://api.bintray.com/conan/grisumbras/conan
+      #     channel: *
