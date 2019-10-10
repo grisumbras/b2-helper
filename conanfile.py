@@ -842,17 +842,27 @@ class B2(object):
 
             file.write("use-packages [ path.make \"%s\" ] ;\n" % build_info)
 
+            file.write(
+                "import feature ;\n"
+                "local all-toolsets = [ feature.values toolset ] ;\n"
+            )
+
             for module in self.using.tuples():
-                file.write("using %s ;\n" % " : ".join(module))
+                if len(module) > 1:
+                    toolset_name = "-".join(module[:2])
+                else:
+                    toolset_name = module[0]
+
+                file.write(
+                    "if ! ( %s in $(all-toolsets) ) { using %s ; }\n"
+                    % (toolset_name, " : ".join(module))
+                )
 
             for include in self.include:
                 include = path_escaped(include)
                 file.write("include \"%s\" ;\n" % include)
 
-            file.write(
-                "import feature ;\n"
-                "feature.feature conan-ps-request :"
-            )
+            file.write("feature.feature conan-ps-request :")
             for i, _ in enumerate(self.properties):
                 file.write(" ps%d" % i)
             file.write(
