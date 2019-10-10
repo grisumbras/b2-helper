@@ -20,7 +20,7 @@ import six
 
 class B2ToolConan(ConanFile):
     name = "b2-helper"
-    version = "0.5.0"
+    version = "0.6.0"
     description = "conan helper for projects built with b2"
     url = "http://github.com/grisumbras/b2-helper"
     homepage = url
