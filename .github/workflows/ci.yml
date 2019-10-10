@@ -34,7 +34,7 @@ jobs:
       - name: Locate package folder
         if: matrix.os == 'ubuntu-latest'
         id: locate_package
-        uses: grisumbras/locate-conan-package@v0.1.1
+        uses: grisumbras/locate-conan-package@v0.2.0
 
       - name: Upload package artifacts
         if: matrix.os == 'ubuntu-latest'
@@ -68,16 +68,16 @@ jobs:
           name: artifacts
 
       - name: Export packages
-        uses: grisumbras/conan-export-subdirs@v0.1.1
+        uses: grisumbras/conan-export-subdirs@v0.2.0
         with:
           path: artifacts
 
       - name: Promote to stable
         if: startsWith(github.event.ref, 'refs/tags/')
-        uses: grisumbras/conan-promote@v0.1.0
+        uses: grisumbras/conan-promote@v0.2.0
 
       - name: Upload packages
-        uses: grisumbras/conan-upload@v0.1.1
+        uses: grisumbras/conan-upload@v0.2.0
         with:
           password: ${{ secrets.CONAN_PASSWORD }}
           url: https://api.bintray.com/conan/grisumbras/conan
