@@ -17,13 +17,9 @@ class B2ToolTestConan(ConanFile):
     exports_sources = "*.cpp", "*.jam"
 
     def b2_setup_builder(self, builder):
-        ps1 = builder.properties[0]
-        ps1.threading = "multi"
-        ps1.link = "shared"
-
-        ps2 = builder.properties.add()
-        ps2.threading = "single"
-        ps2.link = "static"
+        ps = builder.properties
+        ps.threading = "multi"
+        ps.link = "shared"
 
         return builder
 
@@ -35,8 +31,5 @@ class B2ToolTestConan(ConanFile):
         else:
             ext = ""
         assert(os.path.exists(
-            os.path.join(self.package_folder, "bin", "main1" + ext)
-        ))
-        assert(os.path.exists(
-            os.path.join(self.package_folder, "bin", "main2" + ext)
+            os.path.join(self.package_folder, "bin", "main" + ext)
         ))

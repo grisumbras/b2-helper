@@ -20,7 +20,7 @@ import six
 
 class B2ToolConan(ConanFile):
     name = "b2-helper"
-    version = "0.6.0"
+    version = "0.7.0"
     description = "conan helper for projects built with b2"
     url = "http://github.com/grisumbras/b2-helper"
     homepage = url
@@ -542,81 +542,6 @@ class PropertySet(AttrDict):
         getattr(self, "_init_" + (alias or setting))(value)
 
 
-class PropertiesProxy(object):
-    """
-    Proxy object that allows accessing property sets for associated B2
-    instance. Provides both dict and attribute access for its first property
-    set. Also, provides index and iterator access to all property sets.
-    Examples:
-
-        props.toolset = "gcc"
-        props.toolset    # "gcc"
-        props[0].toolset # "gcc"
-
-        props.add().toolset = "msvc"
-        props[1].toolset # "msvc"
-    """
-
-    def __init__(self, b2, no_defaults=False):
-        """
-        Initializes this instance. Creates a single property set element.
-
-        :param b2: associated B2 instance;
-        :param no_defaults: disable collecting default values from conanfile's
-                            settings and options for the original and all added
-                            property sets.
-        """
-
-        setter = super().__setattr__
-        setter("_b2", b2)
-        setter("_no_defaults", no_defaults)
-        setter("_property_sets", [])
-        self.add()
-
-    def __getitem__(self, key):
-        if isinstance(key, (numbers.Number, slice)):
-            return self._property_sets[key]
-        return self._property_sets[0][key]
-
-    def __setitem__(self, key, value):
-        if isinstance(self, (numbers.Number, slice)):
-            self._property_sets[key] = value
-        self._property_sets[0][key] = value
-
-    def __delitem__(self, key):
-        if isinstance(self, (numbers.Number, slice)):
-            del self._property_sets[key]
-        del self._property_sets[0][key]
-
-    def __getattr__(self, key):
-        return getattr(self._property_sets[0], key)
-
-    def __setattr__(self, key, value):
-        setattr(self._property_sets[0], key, value)
-
-    def __delattr__(self, key):
-        delattr(self._property_sets[0], key)
-
-    def __iter__(self):
-        return iter(self._property_sets)
-
-    def add(self, no_defaults=None):
-        """
-        Adds and returns a property set.
-
-        :param defaults: if `False`, fill with default properties;
-                         if `True`, do not fill with default properties;
-                         if `None`, fill with default properties if
-                         `no_defaults=True` was passed to constructor.
-        """
-
-        if no_defaults is None:
-            no_defaults = self._no_defaults
-
-        self._property_sets.append(PropertySet(self._b2, no_defaults))
-        return self._property_sets[-1]
-
-
 class ToolsetModulesProxy(dict):
     """
     dict subclass that acts as a collection of toolset modules.
@@ -761,7 +686,7 @@ class B2(object):
         self.include = []
 
         self.using = ToolsetModulesProxy()
-        self.properties = PropertiesProxy(self, no_defaults)
+        self.properties = PropertySet(self, no_defaults)
 
         self.options = OptionsProxy(self)
         if not no_defaults:
@@ -862,17 +787,9 @@ class B2(object):
                 include = path_escaped(include)
                 file.write("include \"%s\" ;\n" % include)
 
-            file.write("feature.feature conan-ps-request :")
-            for i, _ in enumerate(self.properties):
-                file.write(" ps%d" % i)
-            file.write(
-                " : optional propagated ;\n"
-                "project : requirements\n"
-            )
-            for i, ps in enumerate(self.properties):
-                for k, v in ps.flattened():
-                    v = path_escaped(v)
-                    file.write("  <conan-ps-request>ps%d:<%s>%s\n" % (i, k, v))
+            file.write("project : requirements\n")
+            for k, v in self.properties.flattened():
+                file.write("  <%s>%s\n" % (k, path_escaped(v)))
             file.write("  ;\n")
 
     def build(self, *targets):
@@ -915,12 +832,8 @@ class B2(object):
             "--build-dir=" + self.build_folder,
         )
 
-        props = "conan-ps-request=" + ",".join((
-            ("ps%d" % i) for i, _ in enumerate(self.properties)
-        ))
-
         args = itertools.chain(
-            [self.executable, props],
+            [self.executable],
             targets,
             special_options,
             self.options.strings(),
