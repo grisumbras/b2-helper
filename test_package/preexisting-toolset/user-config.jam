@@ -7,5 +7,7 @@
 import feature ;
 import toolset ;
 
-feature.extend toolset : foobar-1 ;
+feature.extend toolset : foobar ;
+feature.subfeature toolset foobar : version : : propagated ;
+feature.extend-subfeature toolset foobar : version : 1 ;
 echo "Registered toolset foobar-1" ;
