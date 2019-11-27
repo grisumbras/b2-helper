@@ -761,27 +761,26 @@ class B2(object):
             self.conanfile.install_folder, self.source_folder
         )
         with open(self.project_config, "w") as file:
-            file.write("import path ;\n")
-
             build_info = path_escaped(os.path.join(path, "conanbuildinfo.jam"))
-
-            file.write("use-packages [ path.make \"%s\" ] ;\n" % build_info)
-
-            file.write(
+            file.write((
+                "import path ;\n"
                 "import feature ;\n"
+                "use-packages [ path.make \"{0}\" ] ;\n"
                 "local all-toolsets = [ feature.values toolset ] ;\n"
-            )
+            ).format(build_info))
+
 
             for module in self.using.tuples():
                 if len(module) > 1:
-                    toolset_name = "-".join(module[:2])
+                    file.write((
+                        "if ! {0} in $(all-toolsets) ||"
+                        " ! [ feature.is-subvalue toolset : {0}"
+                        " : version : {1}"
+                        " ]"
+                    ).format(*module[:2]))
                 else:
-                    toolset_name = module[0]
-
-                file.write(
-                    "if ! ( %s in $(all-toolsets) ) { using %s ; }\n"
-                    % (toolset_name, " : ".join(module))
-                )
+                    file.write("if ! ( %s in $(all-toolsets) )" % module[0])
+                file.write(" { using %s ; }\n" % " : ".join(module))
 
             for include in self.include:
                 include = path_escaped(include)
