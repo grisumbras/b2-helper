@@ -24,7 +24,7 @@ package:
 [source,python]
 ----
 class MyConan(ConanFile):
-    python_requires = "b2-helper/[>=0.7.1]@grisumbras/stable"
+    python_requires = "b2-helper/[>=0.8.0]@grisumbras/stable"
 ----
 
 == Usage
@@ -36,7 +36,7 @@ The simplest way to use the package is via the mixin class:
 [source,python]
 ----
 class MyConan(ConanFile):
-    python_requires = "b2-helper/[>=0.7.1]@grisumbras/stable"
+    python_requires = "b2-helper/[>=0.8.0]@grisumbras/stable"
     python_requires_extend = "b2-helper.Mixin"
 ----
 
