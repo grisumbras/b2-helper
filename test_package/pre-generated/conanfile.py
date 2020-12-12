@@ -8,14 +8,16 @@ from conans import (
     ConanFile,
     tools,
 )
-from get_helper_package import b2
+from get_helper_package import package_ref
 import os
 
 
-@b2.build_with_b2
 class MyConan(ConanFile):
     """This package bootstraps its own project-config.jam"""
 
+    build_requires = "b2/[*]"
+    python_requires = package_ref
+    python_requires_extend = "b2-helper.Mixin"
     exports_sources = "*.bat", "*.sh", "*.jam", "*.cpp"
 
     def build(self):

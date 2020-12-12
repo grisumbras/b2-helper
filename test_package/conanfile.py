@@ -1,3 +1,9 @@
+# Copyright (c) 2020 Dmitry Arkhipov <grisumbras@gmail.com>
+#
+# Distributed under the Boost Software License, Version 1.0. (See accompanying
+# file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+
 from conans import (
     ConanFile,
     tools,
@@ -8,9 +14,6 @@ import os
 class TestB2Helper(ConanFile):
     _tests = (
         "minimal",
-        "explicit_require_b2",
-        "custom_build_requires",
-        "custom_b2_reference",
         "source_folder",
         "build_folder",
         "options",
