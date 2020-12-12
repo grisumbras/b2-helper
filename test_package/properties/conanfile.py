@@ -8,28 +8,24 @@ from conans import (
     ConanFile,
     tools,
 )
-from get_helper_package import b2
+from get_helper_package import package_ref
 import os
 
 
-@b2.build_with_b2
 class B2ToolTestConan(ConanFile):
+    build_requires = "b2/[*]"
+    python_requires = package_ref
+    python_requires_extend = "b2-helper.Mixin"
     exports_sources = "*.cpp", "*.jam"
 
     def b2_setup_builder(self, builder):
         ps = builder.properties
         ps.threading = "multi"
         ps.link = "shared"
-
         return builder
 
     def package(self):
         super(B2ToolTestConan, self).package()
 
-        if tools.os_info.is_windows:
-            ext = ".exe"
-        else:
-            ext = ""
-        assert(os.path.exists(
-            os.path.join(self.package_folder, "bin", "main" + ext)
-        ))
+        exe = "main" + (".exe" if tools.os_info.is_windows else "")
+        assert(os.path.exists(os.path.join(self.package_folder, "bin", exe)))

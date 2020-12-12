@@ -23,26 +23,24 @@ package:
 
 [source,python]
 ----
-from conans import python_requires
-b2 = python_requires("b2-helper/[>=0.7.1]@grisumbras/stable")
+class MyConan(ConanFile):
+    python_requires = "b2-helper/[>=0.7.1]@grisumbras/stable"
 ----
 
 == Usage
 
-=== Using decorator
+=== Using mixin
 
-The simplest way to use the package is via the class decorator
+The simplest way to use the package is via the mixin class:
 
 [source,python]
 ----
-@b2.build_with_b2
 class MyConan(ConanFile):
-    name = "..."
-    version = "..."
-    settings = "os", "arch", "compiler", "build_type"
+    python_requires = "b2-helper/[>=0.7.1]@grisumbras/stable"
+    python_requires_extend = "b2-helper.Mixin"
 ----
 
-The decorator provides default implementations for methods `build`, `package`
+The mixin provides default implementations for methods `build`, `package`
 and `test`. In order for it to work without any customization, project's
 jamroot file should be in `conanfile.source_folder` and the project should
 require no configuration beyond toolset initialization. If customization is
@@ -50,8 +48,9 @@ required, the `ConanFile` subclass should override method `b2_setup_builder`:
 
 [source,python]
 ----
-@b2.build_with_b2
 class MyConan(ConanFile):
+    python_requires_extend = "b2-helper.Mixin"
+
     def b2_setup_builder(self, builder):
         builder.source_folder = "src"
         builder.build_folder = "build"
@@ -66,51 +65,14 @@ If you need to build specific targets, you can sepcify them via
 
 [source,python]
 ----
-@b2.build_with_b2
 class MyConan1(ConanFile):
-  b2_build_targets = "foo"
+    python_requires_extend = "b2-helper.Mixin"
+    b2_build_targets = "foo"
 
-@b2.build_with_b2
 class MyConan2(ConanFile):
-  b2_build_targets = "foo", "bar"
+    python_requires_extend = "b2-helper.Mixin"
+    b2_build_targets = "foo", "bar"
 ----
-
-By default the decorator adds a build requirement on Boost.Build
-_in development mode_. If you wish to disable that set its keyword argument
-`build_require_b2` to `False`:
-
-[source,python]
-----
-@b2.build_with_b2(build_require_b2=False)
-class MyConan(ConanFile):
-    ...
-----
-
-Alternatively, if you want to use a specific version of Boost.Build, set that
-keyword argument to a conan reference:
-
-[source,python]
-----
-@b2.build_with_b2(build_require_b2="boost_build/4.0.0@mycompany/stable)
-class MyConan(ConanFile):
-    ...
-----
-
-=== Using mixin
-
-Another convenient way to use the package is via a mixin class:
-
-[source,python]
-----
-class MyConan(b2.Mixin, ConanFile):
-    name = "..."
-    version = "..."
-    settings = "os", "arch", "compiler", "build_type"
-----
-
-Using mixin is equivalent to using the class decorator. Note, that since
-`ConanFile` class defines methods `build`, `package` and so on, it is important
-to put the mixin before it in the base class list.
 
 === Using helper
 

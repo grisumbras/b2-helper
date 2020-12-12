@@ -31,13 +31,6 @@ class B2ToolConan(ConanFile):
         self.info.header_only()
 
 
-b2_reference = "b2/[>=4.0.0]"
-
-
-def join_arguments(args):
-    return " ".join(filter(None, args))
-
-
 def jamify(s):
     """
     Convert a valid Python identifier to a string that follows Boost.Build
@@ -640,12 +633,6 @@ class Mixin(object):
 
         return builder
 
-    def build_requirements(self):
-        """Adds build requirement on b2 in development mode."""
-
-        if getattr(self, "_b2_reference", None) and self.develop:
-            self.build_requires(self._b2_reference)
-
     def build(self):
         """Configures and builds default targets."""
 
@@ -791,6 +778,7 @@ class B2(object):
                 file.write("  <%s>%s\n" % (k, path_escaped(v)))
             file.write("  ;\n")
 
+
     def build(self, *targets):
         """
         Run Boost.Build and build targets `targets` using the active options,
@@ -842,49 +830,8 @@ class B2(object):
             self.conanfile.run(join_arguments(args))
 
 
-def build_with_b2(wrapped=None, build_require_b2=True):
-    def helper(wrapped):
-        meta = metaclass(build_require_b2)
-        return six.add_metaclass(meta)(wrapped)
-
-    if wrapped is None:
-        return helper
-    else:
-        return helper(wrapped)
-
-
-def metaclass(build_require_b2=True):
-    if build_require_b2 and not isinstance(build_require_b2, six.string_types):
-        return _Meta
-    else:
-        class _MetaWithCustomRef(_Meta):
-            reference = build_require_b2
-        return _MetaWithCustomRef
-
-
-def _subclass_index(lst, cls):
-    index = [i for (i, base) in enumerate(lst) if issubclass(base, cls)]
-    if index:
-        return index[0]
-    else:
-        return -1
-
-
-class _Meta(type):
-    reference = b2_reference
-
-    def __new__(cls, name, bases, namespace):
-        mixin_index = _subclass_index(bases, Mixin)
-        if mixin_index < 0:
-            cf_index = _subclass_index(bases, ConanFile)
-            if cf_index > -1:
-                bases = list(bases)
-                bases.insert(cf_index, Mixin)
-                bases = tuple(bases)
-
-        namespace["_b2_reference"] = cls.reference
-
-        return type.__new__(cls, name, bases, namespace)
+def join_arguments(args):
+    return " ".join(filter(None, args))
 
 
 def path_escaped(path):

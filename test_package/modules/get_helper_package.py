@@ -9,4 +9,3 @@ from conans import python_requires
 
 
 package_ref = os.environ.get("PACKAGE_REFERENCE")
-b2 = python_requires(package_ref)
